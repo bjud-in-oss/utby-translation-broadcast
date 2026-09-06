@@ -24,7 +24,6 @@ class AudioProcessor extends AudioWorkletProcessor {
   // Internal State
   private localReadIndex: number = 0.0; // Double precision for Lerp
   private mask: number = 0;
-  private bufferSize: number = 0;
   private initialized: boolean = false;
 
   // Gain Ramping (Anti-Click)
@@ -67,11 +66,9 @@ class AudioProcessor extends AudioWorkletProcessor {
       
       this.audioBuffer = new Float32Array(sabAudio);
       // Pointers: [0] = WriteIndex, [1] = ReadIndex
-      const pointersView = new Int32Array(sabPointers);
       this.writeIndexPtr = new Int32Array(sabPointers, 0, 1);
       this.readIndexPtr = new Int32Array(sabPointers, 4, 1);
       
-      this.bufferSize = size;
       this.mask = size - 1; // Requires Power of 2!
       this.initialized = true;
       
@@ -79,7 +76,7 @@ class AudioProcessor extends AudioWorkletProcessor {
     }
   }
 
-  process(inputs: Float32Array[][], outputs: Float32Array[][]): boolean {
+  process(_inputs: Float32Array[][], outputs: Float32Array[][]): boolean {
     if (!this.initialized || !this.audioBuffer || !this.writeIndexPtr || !this.readIndexPtr) {
       return true; // Keep alive until initialized
     }

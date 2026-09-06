@@ -72,9 +72,9 @@ export function useCloudflareSFU(roomId: string | null) {
       let transceiver = pc.getTransceivers()[0];
       if (!transceiver) transceiver = pc.addTransceiver('audio', { direction: 'recvonly' });
 
-      if (pc.signalingState === 'closed') return;
+      if ((pc.signalingState as string) === 'closed') return;
       const offer = await pc.createOffer();
-      if (pc.signalingState === 'closed') return;
+      if ((pc.signalingState as string) === 'closed') return;
       await pc.setLocalDescription(offer);
       await waitForIceGathering(pc);
 
@@ -112,7 +112,7 @@ export function useCloudflareSFU(roomId: string | null) {
       const data = await response.json();
       
       if (data && data.sessionDescription) {
-        if (pc.signalingState === 'closed') return;
+        if ((pc.signalingState as string) === 'closed') return;
         await pc.setRemoteDescription(new RTCSessionDescription(data.sessionDescription));
         subscribedTracksRef.current.add(trackName);
         console.log("[SFU] Successfully subscribed to remote audio track");
@@ -194,10 +194,10 @@ export function useCloudflareSFU(roomId: string | null) {
       // Cloudflare Calls API rejects offers without audio/video tracks with a 400 Bad Request.
       pc.addTransceiver('audio', { direction: 'recvonly' });
 
-      if (pc.signalingState === 'closed') return;
+      if ((pc.signalingState as string) === 'closed') return;
       // Create an offer
       const offer = await pc.createOffer();
-      if (pc.signalingState === 'closed') return;
+      if ((pc.signalingState as string) === 'closed') return;
       await pc.setLocalDescription(offer);
       await waitForIceGathering(pc);
 
@@ -232,7 +232,7 @@ export function useCloudflareSFU(roomId: string | null) {
       
       // Set remote description from Cloudflare's answer
       if (data && data.sessionDescription && data.sessionDescription.sdp) {
-        if (pc.signalingState === 'closed') return;
+        if ((pc.signalingState as string) === 'closed') return;
         await pc.setRemoteDescription(new RTCSessionDescription(data.sessionDescription));
         sessionIdRef.current = data.sessionId;
         setStatus('connected');
@@ -291,9 +291,9 @@ export function useCloudflareSFU(roomId: string | null) {
     try {
       const transceiver = pc.addTransceiver(track, { direction: 'sendonly' });
 
-      if (pc.signalingState === 'closed') return null;
+      if ((pc.signalingState as string) === 'closed') return null;
       const offer = await pc.createOffer();
-      if (pc.signalingState === 'closed') return null;
+      if ((pc.signalingState as string) === 'closed') return null;
       await pc.setLocalDescription(offer);
       await waitForIceGathering(pc);
 
@@ -328,7 +328,7 @@ export function useCloudflareSFU(roomId: string | null) {
       const data = await response.json();
       
       if (data && data.sessionDescription) {
-        if (pc.signalingState === 'closed') return null;
+        if ((pc.signalingState as string) === 'closed') return null;
         await pc.setRemoteDescription(new RTCSessionDescription(data.sessionDescription));
         console.log("[SFU] Successfully published audio track");
         publishedTrackRef.current = { sessionId, trackName: track.id };
