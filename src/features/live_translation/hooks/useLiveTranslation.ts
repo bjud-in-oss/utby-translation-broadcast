@@ -9,6 +9,7 @@ export function useLiveTranslation() {
   const [activeLanguages, setActiveLanguages] = useState<SupportedLanguage[]>(["sv"]);
   const [audioLevel, setAudioLevel] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
+  const [configWarning, setConfigWarning] = useState<string | null>(null);
   const [audioDevices, setAudioDevices] = useState<AudioInputDevice[]>([
     { deviceId: "default", label: "Standardmikrofon" },
   ]);
@@ -18,12 +19,35 @@ export function useLiveTranslation() {
   const audioContextRef = useRef<AudioContext | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
 
+  // Validera miljövariabler vid uppstart
+  useEffect(() => {
+    const getEnv = (key: string): string | undefined => {
+      if (typeof import.meta !== "undefined" && (import.meta as unknown as { env: Record<string, string> }).env) {
+        return (
+          (import.meta as unknown as { env: Record<string, string> }).env[key] ||
+          (import.meta as unknown as { env: Record<string, string> }).env[`VITE_${key}`]
+        );
+      }
+      if (typeof process !== "undefined" && process.env) {
+        return process.env[key] || process.env[`VITE_${key}`];
+      }
+      return undefined;
+    };
+
+    const missing: string[] = [];
+    if (!getEnv("LIVEKIT_URL")) missing.push("LIVEKIT_URL");
+    if (!getEnv("LIVEKIT_API_KEY")) missing.push("LIVEKIT_API_KEY");
+    if (!getEnv("GEMINI_API_KEY")) missing.push("GEMINI_API_KEY");
+
+    if (missing.length > 0) {
+      setConfigWarning(`Saknade miljövariabler i .env.local: ${missing.join(", ")}`);
+    }
+  }, []);
+
   // Enhetsenumerering för ljudingång (inkl. NDI Webcam Input och virtuella kablar)
   const refreshAudioDevices = useCallback(async () => {
     try {
-      if (!navigator.mediaDevices?.enumerateDevices) {
-        return;
-      }
+      if (!navigator.mediaDevices?.enumerateDevices) return;
       const devices = await navigator.mediaDevices.enumerateDevices();
       const audioInputs = devices
         .filter((d) => d.kind === "audioinput")
@@ -56,6 +80,25 @@ export function useLiveTranslation() {
       navigator.mediaDevices?.removeEventListener?.("devicechange", refreshAudioDevices);
     };
   }, [refreshAudioDevices]);
+
+  // Synkron upplåsning av AudioContext för iOS Safari vid användarinteraktion
+  const unlockAudioContext = useCallback(() => {
+    try {
+      if (!audioContextRef.current || audioContextRef.current.state === "closed") {
+        const AudioContextClass =
+          window.AudioContext ||
+          (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+        if (AudioContextClass) {
+          audioContextRef.current = new AudioContextClass({ sampleRate: 48000 });
+        }
+      }
+      if (audioContextRef.current && audioContextRef.current.state === "suspended") {
+        void audioContextRef.current.resume();
+      }
+    } catch (e) {
+      console.warn("Kunde inte initiera AudioContext:", e);
+    }
+  }, []);
 
   const toggleActiveLanguage = useCallback((lang: SupportedLanguage) => {
     setActiveLanguages((prev) => {
@@ -92,6 +135,9 @@ export function useLiveTranslation() {
   }, [panicMute]);
 
   const startTranslation = useCallback(async () => {
+    // 1. Synkron iOS Safari upplåsning direkt i klickstacken före await
+    unlockAudioContext();
+
     setError(null);
     setStatus("connecting");
 
@@ -102,13 +148,8 @@ export function useLiveTranslation() {
       "demo_key";
 
     try {
-      const AudioContextClass =
-        window.AudioContext ||
-        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-      const audioCtx = new AudioContextClass({ sampleRate: 48000 });
-      audioContextRef.current = audioCtx;
+      const audioCtx = audioContextRef.current!;
 
-      // Begär ljudström med vald enhet (NDI Webcam Input etc.) och DSP-bypass
       const audioConstraints: MediaTrackConstraints = {
         echoCancellation: false,
         noiseSuppression: false,
@@ -123,13 +164,10 @@ export function useLiveTranslation() {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: audioConstraints });
       mediaStreamRef.current = stream;
 
-      // Uppdatera enhetslista med skarpa hårdvaruetiketter nu när tillstånd beviljats
       void refreshAudioDevices();
 
-      // Skapa MultiBridgeOrchestrator för parallell flerspråkstolkning
       const orchestrator = new MultiBridgeOrchestrator(apiKey, {
         onAudioData: (lang, samples) => {
-          // I lyssnarvy spelas endast det valda språket upp (övriga tystas)
           if (lang === targetLanguage) {
             let sum = 0;
             for (let i = 0; i < samples.length; i += 10) {
@@ -150,13 +188,11 @@ export function useLiveTranslation() {
 
       orchestratorRef.current = orchestrator;
 
-      // Starta alla valda språkparalleller (t.ex. Swahili, Engelska, etc.)
       const languagesToStart = activeLanguages.length > 0 ? activeLanguages : [targetLanguage];
       for (const lang of languagesToStart) {
         orchestrator.startLanguage(lang);
       }
 
-      // Koppla ljudströmmen till resampling och distribuera till alla bryggor
       const source = audioCtx.createMediaStreamSource(stream);
       const processor = audioCtx.createScriptProcessor(4096, 1, 1);
 
@@ -173,7 +209,7 @@ export function useLiveTranslation() {
       setError(err instanceof Error ? err.message : "Mikrofonåtkomst nekad");
       setStatus("error");
     }
-  }, [selectedDeviceId, targetLanguage, activeLanguages, refreshAudioDevices]);
+  }, [selectedDeviceId, targetLanguage, activeLanguages, refreshAudioDevices, unlockAudioContext]);
 
   return {
     status,
@@ -183,10 +219,12 @@ export function useLiveTranslation() {
     audioDevices,
     selectedDeviceId,
     error,
+    configWarning,
     isRotating: status === "rotating",
     setSelectedDeviceId,
     toggleActiveLanguage,
     setTargetLanguage,
+    unlockAudioContext,
     startTranslation,
     stopTranslation,
     panicMute,

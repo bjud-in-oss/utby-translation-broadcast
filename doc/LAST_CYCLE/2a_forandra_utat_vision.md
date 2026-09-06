@@ -1,6 +1,6 @@
-# Steg 2a: Förändra utåt (Vision & Gränssnitt) - TCK-021
+# Steg 2a: Förändra utåt (Vision & Gränssnitt) - TCK-022
 
 ## 1. Yttre kvalitets- och upplevelseförändring
-- Ljudsignalen som skickas från klienten till Gemini Live API blir väsentligt klarare och fri från metalliska aliasing-artefakter, vilket resulterar i högre igenkänningsgrad och bättre översättningskvalitet.
-- Enhetsvalet hanteras sömlöst: användaren ser direkt sina ljudkällor och när mikrofonbehörighet ges uppdateras namnen omedelbart till källornas faktiska etiketter (inklusive NDI-strömmar).
-- Med `@tailwindcss/vite` aktiverat renderas gränssnittet i all sin avsedda redaktionella elegans i webbläsarens live-preview.
+- **Mobilupplevelse på iOS:** Ljudet spelar upp direkt på iPhone och iPad utan att blockeras av Safaris autoplay-spärr.
+- **Konferensresiliens:** Tillfälliga nätverksdippar på Wi-Fi leder inte till att tolkningen havererar; anslutningen återhämtar sig automatiskt i bakgrunden.
+- **Tydlighet vid utveckling och sändning:** Saknade miljövariabler indikeras omedelbart vid sidladdning så att arrangörer slipper överraskningar när tolkningen startas.

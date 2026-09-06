@@ -4,6 +4,8 @@
 - Gemini Live Translate API stänger sessioner hårt vid 15 minuter.
 - Bryggan initierar proaktiv hot-swap vid 14:00 (840 sekunder).
 - LiveKit AudioSource och LocalAudioTrack bibehålls intakta under rotation.
+- Vid oväntat anslutningstapp sker automatisk återanslutning med exponential backoff (3 försök: 1s, 2s, 4s).
+- WebAudio AudioContext låses upp synkront vid startklick för att kringgå iOS Safari autoplay-spärr.
 
 ## 2. Ljud- och Pacing-regler
 - Mikrofonupptagning samplas om från 48 kHz till 16 kHz mono Int16 med 3-punkts anti-aliasing lågpassfilter.

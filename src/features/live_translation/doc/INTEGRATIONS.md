@@ -12,6 +12,7 @@
 - Ljudspår publiceras som mono `LocalAudioTrack` med dedikerad `AudioSource`.
 - Parallella tolk-bottar publicerar under identiteten `translator-[språkkod]`.
 - Tokens genereras med klock-skew (`nbf: -5s`) och 15 minuters giltighetstid.
+- Miljövariabler (`LIVEKIT_URL`, `LIVEKIT_API_KEY`, `GEMINI_API_KEY`) valideras vid uppstart med UI-varningsindikator vid saknade värden.
 
 ## 3. Web Audio & Enhetsinmatning
 - `navigator.mediaDevices.enumerateDevices()` och `devicechange` hämtar alla ljudenheter och NDI.

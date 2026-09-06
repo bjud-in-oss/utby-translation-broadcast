@@ -18,6 +18,10 @@ export class TranslationBridge {
   private nextWs: WebSocket | null = null;
   private hotSwapManager: HotSwapManager;
   private readonly MAX_BUFFERED_BYTES = 128 * 1024; // 128 KB backpressure-tröskel
+  private reconnectAttempts = 0;
+  private readonly MAX_RECONNECT_ATTEMPTS = 3;
+  private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  private isIntentionalDisconnect = false;
 
   constructor(
     private readonly apiKey: string,
@@ -29,7 +33,11 @@ export class TranslationBridge {
     });
   }
 
-  public connect(): void {
+  public connect(isRetry = false): void {
+    this.isIntentionalDisconnect = false;
+    if (!isRetry) {
+      this.reconnectAttempts = 0;
+    }
     this.callbacks.onStatusChange("connecting");
     const wsUrl = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=${encodeURIComponent(
       this.apiKey
@@ -40,7 +48,36 @@ export class TranslationBridge {
       this.setupSocketHandlers(this.ws, false);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Kunde inte upprätta WebSocket";
-      this.callbacks.onError(msg);
+      this.handleConnectionFailure(msg);
+    }
+  }
+
+  private handleConnectionFailure(errorMsg: string): void {
+    if (!this.isIntentionalDisconnect && this.reconnectAttempts < this.MAX_RECONNECT_ATTEMPTS) {
+      this.attemptReconnect();
+    } else {
+      this.callbacks.onError(errorMsg);
+      this.callbacks.onStatusChange("error");
+    }
+  }
+
+  private attemptReconnect(): void {
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
+
+    if (this.reconnectAttempts < this.MAX_RECONNECT_ATTEMPTS) {
+      const delay = Math.min(4000, 1000 * Math.pow(2, this.reconnectAttempts));
+      this.reconnectAttempts++;
+      this.callbacks.onStatusChange("connecting");
+      this.reconnectTimer = setTimeout(() => {
+        if (!this.isIntentionalDisconnect) {
+          this.connect(true);
+        }
+      }, delay);
+    } else {
+      this.callbacks.onError("Anslutningen till Gemini förlorades efter flera återanslutningsförsök.");
       this.callbacks.onStatusChange("error");
     }
   }
@@ -100,14 +137,17 @@ export class TranslationBridge {
 
     socket.onerror = (evt) => {
       console.warn("WebSocket fel:", evt);
-      this.callbacks.onError("WebSocket-anslutningsfel");
-      this.callbacks.onStatusChange("error");
+      // Hanteras via onclose eller om anslutningen misslyckas direkt
     };
 
-    socket.onclose = () => {
+    socket.onclose = (evt?: { code?: number }) => {
       if (!isPrewarmed) {
-        this.callbacks.onStatusChange("idle");
         this.hotSwapManager.disarmTimer();
+        if (!this.isIntentionalDisconnect && evt?.code !== 1000) {
+          this.attemptReconnect();
+        } else {
+          this.callbacks.onStatusChange("idle");
+        }
       }
     };
   }
@@ -170,6 +210,11 @@ export class TranslationBridge {
   }
 
   public disconnect(): void {
+    this.isIntentionalDisconnect = true;
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
     this.hotSwapManager.reset();
     if (this.ws) {
       this.ws.close();

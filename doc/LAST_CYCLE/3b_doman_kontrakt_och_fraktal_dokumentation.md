@@ -1,7 +1,12 @@
-# Steg 3b: Domänkontrakt och fraktal dokumentation (TCK-021)
+# Steg 3b: Domänkontrakt och fraktal dokumentation (TCK-022)
 
 ## 1. Domänkontrakt
-- `AudioResampler.downsample48kTo16k(input: Float32Array): Int16Array`: Kontraktet bibehåller sin metodsignatur och returtyp. Lågpassfiltrering integreras internt.
+- `TranslationBridge`:
+  - `public connect(): Promise<void>`
+  - Intern metod: `private attemptReconnect(): void`
+  - Max försök: 3. Backoff-sekvens: 1000ms, 2000ms, 4000ms.
+- `useLiveTranslation`:
+  - Returobjekt utökas med `configWarning: string | null`.
 
 ## 2. Lokala dokumentationsfiler
-- Uppdatera `src/features/live_translation/doc/BUSINESS_RULES.md` och `INTEGRATIONS.md` med specifikationen för anti-aliasing och enhetsbehörighet.
+- Uppdatera `src/features/live_translation/doc/BUSINESS_RULES.md`, `INTEGRATIONS.md` och `UI_WORKFLOWS.md`.

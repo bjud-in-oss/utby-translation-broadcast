@@ -1,9 +1,9 @@
-# Steg 2e: Försoning och förlikning (TCK-021)
+# Steg 2e: Försoning och förlikning (TCK-022)
 
 ## 1. Målkonflikter och förlikningsbeslut
-- **Målkonflikt 1 (Prestanda vs Filtreringsdjup i ljudresampling):** Ett tungt FIR/IIR-filter med många koefficienter kan belasta Web Audio tråden i webbläsaren.
-  - *Förlikning:* Ett 3-punkts box filter / moving average ger utmärkt dämpning av speglingsfrekvenser över 8 kHz (Nyquist vid 16 kHz) med strikt $O(N)$ linjär tid och noll extra minnesallokering.
-- **Målkonflikt 2 (Enhetsnamn före användargodkännande):** Webbläsare döljer av integritetsskäl etiketter före `getUserMedia`.
-  - *Förlikning:* Visa tydliga platshållarnamn ("Standardljudkälla", "Ljudkälla 1") tills användaren startar strömmen, varvid listan omedelbart uppdateras till de skarpa källnamnen.
+- **Målkonflikt 1 (Återanslutningsfördröjning vs Användaråterkoppling):** Under ett återanslutningsförsök kan användaren bli osäker på om sessionen lever.
+  - *Förlikning:* Sätt statusen till `connecting` eller logga reconnect under pågående försök; endast efter 3 förbrukade försök ändras statusen till `error`.
+- **Målkonflikt 2 (Miljövariabelkontroll utan hård blockering i dev):** I en lokal utvecklingsmiljö eller preview kan användaren vilja testa gränssnittet även utan aktiva nycklar.
+  - *Förlikning:* Visa en diskret varningsbanderoll utan att inaktivera knappar, så att gränssnittet och mockade flöden fortfarande kan utvärderas.
 
 MÄTTNAD: JA

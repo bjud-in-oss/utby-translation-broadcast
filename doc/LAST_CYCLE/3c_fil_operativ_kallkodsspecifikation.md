@@ -1,16 +1,21 @@
-# Steg 3c: Fil-operativ källkodsspecifikation (TCK-021)
+# Steg 3c: Fil-operativ källkodsspecifikation (TCK-022)
 
 ## 1. Berörda filer för domänen `src/features/live_translation/`
-- `src/features/live_translation/domain/audioResampler.ts`
-- `src/features/live_translation/domain/__tests__/audioResampler.test.ts`
+- `src/features/live_translation/domain/translationBridge.ts`
+- `src/features/live_translation/domain/__tests__/translationBridge.test.ts`
 - `src/features/live_translation/hooks/useLiveTranslation.ts`
+- `src/features/live_translation/components/LiveTranslationWidget.tsx`
+- `src/features/live_translation/components/__tests__/LiveTranslationWidget.test.tsx`
 - `src/features/live_translation/doc/BUSINESS_RULES.md`
 - `src/features/live_translation/doc/INTEGRATIONS.md`
+- `src/features/live_translation/doc/UI_WORKFLOWS.md`
 
 ## 2. Testfall som ska köras först (TDD)
-- Skapa `src/features/live_translation/domain/__tests__/audioResampler.test.ts` som verifierar att:
-  1. `downsample48kTo16k` decimerar till exakt en tredjedel av antalet samplar.
-  2. Rullande 3-punkts lågpassfiltrering dämpar spikar och högfrekvent aliasing (t.ex. vid alternerande signal [+1, -1, +1]).
-  3. Signal clamping till [-32768, 32767] fungerar korrekt utan overflow.
+1. `src/features/live_translation/domain/__tests__/translationBridge.test.ts`:
+   - Verifierar att återanslutning initieras med exponential backoff vid onormal WebSocket-stängning.
+   - Verifierar att status inte övergår till `error` förrän efter 3 misslyckade försök.
+2. `src/features/live_translation/components/__tests__/LiveTranslationWidget.test.tsx`:
+   - Verifierar att `configWarning` visas i gränssnittet om miljövariabler saknas.
+   - Verifierar att synkron upplåsning anropas vid klick på "Starta tolkning".
 
 BESLUT: GODKÄND

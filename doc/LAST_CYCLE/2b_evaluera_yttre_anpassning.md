@@ -1,6 +1,6 @@
-# Steg 2b: Evaluera yttre anpassning (TCK-021)
+# Steg 2b: Evaluera yttre anpassning (TCK-022)
 
-## 1. Utvärdering mot användarfeedback och teknisk precision
-- Den föreslagna förbättringen av `AudioResampler` adresserar direkt problemet med frekvensvikning (aliasing) vid 48 kHz $\rightarrow$ 16 kHz konvertering.
-- Den proaktiva enhetshanteringen eliminerar förvirring kring tomma strängar från `enumerateDevices()`.
-- Tailwind v4-konfigurationen i Vite återställer den fulla visuella presentationen i preview.
+## 1. Utvärdering mot användarbehov och live-sändningskrav
+- Synkron upplåsning av `AudioContext` tillgodoser WebKit / Safari specifikationskrav för användarinitierade gester.
+- Exponential backoff (1s, 2s, 4s) följer standardiserade nätverksresiliensmönster för WebRTC och WebSockets.
+- Tidig uppstartskontroll ger proaktiv och transparent återkoppling utan störande modalrutor.

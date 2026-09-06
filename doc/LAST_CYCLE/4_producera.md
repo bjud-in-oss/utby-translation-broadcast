@@ -1,11 +1,17 @@
-# Steg 4: Producera (TCK-021: AudioResampler anti-aliasing, enhetsbehörighet och ren röstinsignal)
+# Steg 4: Producera (TCK-022: iOS WebAudio unlock, WebSocket retry backoff och credential-varning)
 
 ## 1. Genomförda källkodsändringar
-- `package.json` & `vite.config.ts`: Installerat och aktiverat `@tailwindcss/vite` så att Tailwind v4 stilar kompileras korrekt i Vite och förhandsgranskas som avsett.
-- `src/features/live_translation/domain/audioResampler.ts`: Integrerat ett 3-punkts anti-aliasing lågpassfilter (moving average box filter) vid decimering från 48 kHz till 16 kHz. Dämpar frekvenser över 8 kHz (Nyquist) och eliminerar metalliskt vikningsbrus.
-- `src/features/live_translation/domain/__tests__/audioResampler.test.ts`: Implementerat dedikerade TDD-tester för dämpning av alternerande högfrekvent signal, DC-bevarande och decimering.
-- `src/features/live_translation/hooks/useLiveTranslation.ts`: Förbättrat enhetshantering med fallback-namn före användargodkännande, omedelbar omläsning med skarpa hårdvaruetiketter när `getUserMedia` godkänns, och dynamisk `devicechange`-lyssnare.
-- `src/features/live_translation/doc/BUSINESS_RULES.md` & `INTEGRATIONS.md`: Dokumenterat specifikationen för anti-aliasing och enhetsenumerering.
+- `src/features/live_translation/domain/translationBridge.ts`: Implementerat automatisk återanslutning vid oväntat anslutningstapp (t.ex. vid konferens-Wi-Fi dippar) med exponential backoff (1s, 2s, 4s upp till 3 försök) innan fel emitteras.
+- `src/features/live_translation/domain/__tests__/translationBridge.test.ts`: Skapat TDD-enhetstester som simulerar oväntat nätverksbortfall och verifierar återanslutningscykeln samt att avsiktlig frånkoppling respekteras.
+- `src/features/live_translation/hooks/useLiveTranslation.ts`:
+  - Lagt till `unlockAudioContext()` som synkront resume:ar `AudioContext` vid användargest (klick), vilket låser upp ljuduppspelning på iOS Safari innan asynkrona anrop görs.
+  - Lagt till proaktiv kontroll av `LIVEKIT_URL`, `LIVEKIT_API_KEY` och `GEMINI_API_KEY` vid komponentmontering.
+- `src/features/live_translation/components/LiveTranslationWidget.tsx`:
+  - Anropar synkront `unlockAudioContext()` direkt i klickhanteraren före start.
+  - Renderar ett diskret, monospacat varningsfält om miljövariabler saknas i `.env.local`.
+  - Håller komponenten strikt under 120 rader (100 rader) med endast 1 hook.
+- `src/features/live_translation/components/__tests__/LiveTranslationWidget.test.tsx`: Uppdaterat UI-testerna för att testa varningen och den uppdaterade klickhanteraren.
+- `src/features/live_translation/doc/BUSINESS_RULES.md` & `INTEGRATIONS.md`: Uppdaterat dokumentationen med reglerna för återanslutning och behörighetsvarning.
 
 ## 2. Testning
-Samtliga enhetstester körda med Vitest utan anmärkningar.
+Samtliga enhetstester körda med Vitest utan fel.

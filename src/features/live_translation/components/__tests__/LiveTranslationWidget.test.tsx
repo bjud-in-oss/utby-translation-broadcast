@@ -24,6 +24,8 @@ vi.mock("../../hooks/useLiveTranslation", () => ({
       );
     });
 
+    const unlockAudioContext = vi.fn();
+
     return {
       status,
       targetLanguage,
@@ -45,14 +47,17 @@ vi.mock("../../hooks/useLiveTranslation", () => ({
       }),
       isRotating: status === "rotating",
       error: null,
+      configWarning: "Saknade miljövariabler i .env.local: LIVEKIT_URL",
+      unlockAudioContext,
     };
   },
 }));
 
 describe("LiveTranslationWidget", () => {
-  it("renders initial idle state and controls with Variation 3 editorial layout", () => {
+  it("renders initial idle state, warning and controls with Variation 3 editorial layout", () => {
     render(<LiveTranslationWidget />);
     expect(screen.getByText("Realtidstolkning")).toBeDefined();
+    expect(screen.getByText(/Saknade miljövariabler/i)).toBeDefined();
     expect(screen.getByRole("button", { name: /starta tolkning/i })).toBeDefined();
   });
 
