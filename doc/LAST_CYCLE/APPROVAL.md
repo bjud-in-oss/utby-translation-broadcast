@@ -1,3 +1,0 @@
-# Godkännande av Steg 3c
-
-TOKEN-TCK-017-LIVEKIT-A4F79C2E

@@ -1,6 +1,6 @@
 {
-  "name": "Systemarkitektur & Mall",
-  "description": "Autonom utveckling med Feature-Sliced Design och mekaniska kvalitetsspärrar",
-  "requestFramePermissions": [],
+  "name": "Live Translation",
+  "description": "Realtids simultantolkning med Gemini Live och LiveKit SFU",
+  "requestFramePermissions": ["microphone"],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
