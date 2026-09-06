@@ -1,4 +1,4 @@
 export { ExampleWidget } from "./components/ExampleWidget";
 export { useExample } from "./hooks/useExample";
-export * from "./domain/types";
-export * from "./domain/exampleService";
+export type { BaseEntity, ExampleWidgetData } from "./domain/types";
+export { incrementCount } from "./domain/exampleService";
