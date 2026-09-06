@@ -12,7 +12,7 @@ export function cleanClosedTickets() {
   const lines = content.split('\n');
   
   const activeLines = lines.filter((line) => {
-    const isTicketRow = /^\|\s*TCK-\d+/.test(line);
+    const isTicketRow = /^\|\s*`?TCK-\d+`?/.test(line);
     if (!isTicketRow) return true;
     return !line.includes('Closed');
   });

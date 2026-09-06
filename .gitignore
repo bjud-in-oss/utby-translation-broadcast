@@ -1,0 +1,42 @@
+# Beroenden
+node_modules/
+.pnpm-store/
+
+# Miljövariabler & Secrets (SÄKERHET)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.pem
+
+# Bygg- och kompilationsfiler
+dist/
+dist-ssr/
+build/
+.next/
+out/
+*.tsbuildinfo
+
+# Loggar
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Editor & Operativsystem
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+*.swp
+
+# Cache & Tester
+coverage/
+.cache/
+.vite/
+.turbo/
