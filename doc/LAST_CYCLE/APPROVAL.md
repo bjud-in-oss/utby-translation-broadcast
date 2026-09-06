@@ -1,0 +1,3 @@
+# Godkännande av Steg 3c
+
+TOKEN-TCK-018-APP-INTEGRATION-7B2D4E19
