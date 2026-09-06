@@ -27,10 +27,16 @@ export function useLiveTranslation() {
       const devices = await navigator.mediaDevices.enumerateDevices();
       const audioInputs = devices
         .filter((d) => d.kind === "audioinput")
-        .map((d, index) => ({
-          deviceId: d.deviceId || `device-${index}`,
-          label: d.label || (d.deviceId === "default" ? "Standardmikrofon" : `Mikrofon ${index + 1}`),
-        }));
+        .map((d, index) => {
+          let label = d.label;
+          if (!label) {
+            label = d.deviceId === "default" ? "Standardmikrofon" : `Ljudenhet ${index + 1} (behörighet krävs för namn)`;
+          }
+          return {
+            deviceId: d.deviceId || `device-${index}`,
+            label,
+          };
+        });
 
       if (audioInputs.length > 0) {
         setAudioDevices(audioInputs);
@@ -117,7 +123,7 @@ export function useLiveTranslation() {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: audioConstraints });
       mediaStreamRef.current = stream;
 
-      // Uppdatera enhetslista med skarpa etiketter nu när tillstånd beviljats
+      // Uppdatera enhetslista med skarpa hårdvaruetiketter nu när tillstånd beviljats
       void refreshAudioDevices();
 
       // Skapa MultiBridgeOrchestrator för parallell flerspråkstolkning

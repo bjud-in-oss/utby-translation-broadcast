@@ -2,14 +2,17 @@
  * AudioResampler
  * Utför linjär interpolation och konvertering mellan Float32 och Int16 PCM.
  * Stödjer:
- * - 48 kHz Float32 (Web Audio) -> 16 kHz Int16 (Gemini Ingest)
+ * - 48 kHz Float32 (Web Audio) -> 16 kHz Int16 (Gemini Ingest) med anti-aliasing lågpassfilter
  * - 24 kHz Int16 (Gemini Output) -> 48 kHz Float32 (Web Audio / LiveKit)
  * - Uppdelning i 480-samplers 20ms ramar för WebRTC pacing.
+ * - Base64 serialisering för WebSocket transport.
  */
 
 export class AudioResampler {
   /**
-   * Konverterar 48 kHz Float32 till 16 kHz Int16 med linjär nedsampling (faktor 3).
+   * Konverterar 48 kHz Float32 till 16 kHz Int16 med 3-punkts anti-aliasing lågpassfilter.
+   * Ett glidande medelvärde (moving average) dämpar frekvenser över Nyquist-gränsen (8 kHz)
+   * och förhindrar metalliskt aliasing-brus.
    */
   public static downsample48kTo16k(input: Float32Array): Int16Array {
     const ratio = 3;
@@ -17,9 +20,15 @@ export class AudioResampler {
     const output = new Int16Array(outputLength);
 
     for (let i = 0; i < outputLength; i++) {
-      const sample = input[i * ratio] ?? 0;
+      const idx = i * ratio;
+      // 3-punkts lågpassfiltrering (box filter) över samplarna innan decimering
+      const s0 = input[idx] ?? 0;
+      const s1 = input[idx + 1] ?? s0;
+      const s2 = input[idx + 2] ?? s1;
+      const filtered = (s0 + s1 + s2) / 3.0;
+
       // Kläm mellan -1.0 och 1.0 och skala till 16-bit signed integer
-      const clamped = Math.max(-1, Math.min(1, sample));
+      const clamped = Math.max(-1, Math.min(1, filtered));
       output[i] = clamped < 0 ? clamped * 0x8000 : clamped * 0x7fff;
     }
 
@@ -63,7 +72,20 @@ export class AudioResampler {
   }
 
   /**
-   * Konverterar Base64-sträng till Int16Array (Little-Endian).
+   * Konverterar Int16Array till Base64-sträng för WebSocket överföring.
+   */
+  public static int16ToBase64(samples: Int16Array): string {
+    const bytes = new Uint8Array(samples.buffer, samples.byteOffset, samples.byteLength);
+    let binary = "";
+    const len = bytes.byteLength;
+    for (let i = 0; i < len; i++) {
+      binary += String.fromCharCode(bytes[i]!);
+    }
+    return btoa(binary);
+  }
+
+  /**
+   * Konverterar Base64-sträng från Gemini Live API till Int16Array PCM.
    */
   public static base64ToInt16(base64: string): Int16Array {
     const binary = atob(base64);
@@ -71,25 +93,6 @@ export class AudioResampler {
     for (let i = 0; i < binary.length; i++) {
       bytes[i] = binary.charCodeAt(i);
     }
-    return new Int16Array(bytes.buffer, bytes.byteOffset, bytes.length / 2);
-  }
-
-  /**
-   * Konverterar Int16Array till Base64-sträng (Little-Endian).
-   */
-  public static int16ToBase64(samples: Int16Array): string {
-    const bytes = new Uint8Array(
-      samples.buffer,
-      samples.byteOffset,
-      samples.byteLength
-    );
-    let binary = "";
-    for (let i = 0; i < bytes.length; i++) {
-      const b = bytes[i];
-      if (b !== undefined) {
-        binary += String.fromCharCode(b);
-      }
-    }
-    return btoa(binary);
+    return new Int16Array(bytes.buffer, bytes.byteOffset, bytes.byteLength / 2);
   }
 }

@@ -6,7 +6,7 @@
 - LiveKit AudioSource och LocalAudioTrack bibehålls intakta under rotation.
 
 ## 2. Ljud- och Pacing-regler
-- Mikrofonupptagning samplas om från 48 kHz till 16 kHz mono Int16.
+- Mikrofonupptagning samplas om från 48 kHz till 16 kHz mono Int16 med 3-punkts anti-aliasing lågpassfilter.
 - Gemini Live Translate levererar 24 kHz Int16 Little-Endian mono.
 - Frame pacing körs med metronom var 20:e ms (480 samplar per ram).
 - Backpressure-tröskel är 128 KB; icke-kritiska ramar släpps vid överskridande.

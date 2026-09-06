@@ -14,6 +14,7 @@
 - Tokens genereras med klock-skew (`nbf: -5s`) och 15 minuters giltighetstid.
 
 ## 3. Web Audio & Enhetsinmatning
-- `navigator.mediaDevices.enumerateDevices()` hämtar alla ljudenheter och NDI.
+- `navigator.mediaDevices.enumerateDevices()` och `devicechange` hämtar alla ljudenheter och NDI.
+- Anti-aliasing 3-punkts lågpassfiltrering dämpar vikningsbrus vid 48k -> 16k decimering.
 - AudioContext körs med fallback-återstart vid Safari `interrupted`-status.
 - DSP-filter inaktiveras selektivt vid ren talkälla.

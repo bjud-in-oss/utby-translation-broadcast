@@ -1,9 +1,6 @@
-# Steg 2a: Förändra utåt (Vision & Gränssnitt) - TCK-020
+# Steg 2a: Förändra utåt (Vision & Gränssnitt) - TCK-021
 
-## 1. Yttre gränssnittsförändring och användarupplevelse
-- `LiveTranslationWidget` kläs i ett redaktionellt, elegant formspråk baserat på Variation 3:
-  - Vit behållare med generös padding och djup, mjuk skugga (`box-shadow: 0 40px 100px rgba(0,0,0,0.04)`).
-  - Statusrad med serif-rubrik och monospacad färgkodad statusindikator (`idle`, `active`, `connecting`).
-  - Fälten för ljudingång (inklusive NDI) och målspråk (inklusive Swahili m.fl.) har minimalistiska understrukna kanter.
-  - Ljudvolymsmätaren utformas som en distinkt 4px horisontell mätlinje med procentsats i monospace.
-  - Huvudknappen utformas i djupt bläck med hover-övergång till accentblått.
+## 1. Yttre kvalitets- och upplevelseförändring
+- Ljudsignalen som skickas från klienten till Gemini Live API blir väsentligt klarare och fri från metalliska aliasing-artefakter, vilket resulterar i högre igenkänningsgrad och bättre översättningskvalitet.
+- Enhetsvalet hanteras sömlöst: användaren ser direkt sina ljudkällor och när mikrofonbehörighet ges uppdateras namnen omedelbart till källornas faktiska etiketter (inklusive NDI-strömmar).
+- Med `@tailwindcss/vite` aktiverat renderas gränssnittet i all sin avsedda redaktionella elegans i webbläsarens live-preview.

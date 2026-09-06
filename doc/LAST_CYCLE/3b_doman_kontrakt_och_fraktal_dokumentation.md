@@ -1,8 +1,7 @@
-# Steg 3b: Domänkontrakt och fraktal dokumentation (TCK-020)
+# Steg 3b: Domänkontrakt och fraktal dokumentation (TCK-021)
 
-## 1. Komponentkontrakt
-- `LiveTranslationWidget`: Behåller alla props och interna tillståndshanteringar via `useLiveTranslation`.
-- Inga förändringar i Zod-scheman eller publika typer.
+## 1. Domänkontrakt
+- `AudioResampler.downsample48kTo16k(input: Float32Array): Int16Array`: Kontraktet bibehåller sin metodsignatur och returtyp. Lågpassfiltrering integreras internt.
 
 ## 2. Lokala dokumentationsfiler
-- Uppdatera `src/features/live_translation/doc/UI_WORKFLOWS.md` med redaktionella stilriktlinjer och tillgänglighetsmål.
+- Uppdatera `src/features/live_translation/doc/BUSINESS_RULES.md` och `INTEGRATIONS.md` med specifikationen för anti-aliasing och enhetsbehörighet.

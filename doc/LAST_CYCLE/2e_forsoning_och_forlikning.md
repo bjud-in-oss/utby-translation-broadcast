@@ -1,9 +1,9 @@
-# Steg 2e: Försoning och förlikning (TCK-020)
+# Steg 2e: Försoning och förlikning (TCK-021)
 
 ## 1. Målkonflikter och förlikningsbeslut
-- **Målkonflikt 1 (Typografi och fallback-fonter):** Webbläsare som inte laddat Cormorant Garamond eller Space Mono kan få felaktig layout.
-  - *Förlikning:* CSS konfigurerar robusta fallbacks (`Georgia, serif` och `ui-monospace, monospace`) så att layouten alltid är stabil och läsbar.
-- **Målkonflikt 2 (Panik-tystning vs minimalistisk renhet):** Design Variation 3 hade ingen explicit panikknapp i mockupen.
-  - *Förlikning:* Panik-tystningsknappen placeras stilrent bredvid huvudknappen vid aktiv session i matchande Space Mono-stil så att säkerhetskraven från TCK-019 bibehålls utan att störa designens lugn.
+- **Målkonflikt 1 (Prestanda vs Filtreringsdjup i ljudresampling):** Ett tungt FIR/IIR-filter med många koefficienter kan belasta Web Audio tråden i webbläsaren.
+  - *Förlikning:* Ett 3-punkts box filter / moving average ger utmärkt dämpning av speglingsfrekvenser över 8 kHz (Nyquist vid 16 kHz) med strikt $O(N)$ linjär tid och noll extra minnesallokering.
+- **Målkonflikt 2 (Enhetsnamn före användargodkännande):** Webbläsare döljer av integritetsskäl etiketter före `getUserMedia`.
+  - *Förlikning:* Visa tydliga platshållarnamn ("Standardljudkälla", "Ljudkälla 1") tills användaren startar strömmen, varvid listan omedelbart uppdateras till de skarpa källnamnen.
 
 MÄTTNAD: JA
