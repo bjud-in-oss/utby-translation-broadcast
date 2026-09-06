@@ -14,4 +14,7 @@
 ## 3. Säkerhet och Integritet
 - API-nycklar skyddas och exponeras inte i oskyddade loggar.
 - Setup-payload isoleras: inga verktyg eller systeminstruktioner skickas.
+- Ljudingång stöder val av valfri mikrofon eller NDI Webcam Input via deviceId.
+- Parallella tolkkanaler körs isolerat per språk (`translator-[språkkod]`).
+- Lyssnare tar endast emot valt språk; övriga kanaler tystas automatiskt.
 - Panik-tystning avbryter omedelbart all ljuduppspelning och tömmer köer.

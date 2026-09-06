@@ -10,8 +10,10 @@
 - URL-protokoll: `wss://...livekit.cloud`
 - SDK: `livekit-client` v2
 - Ljudspår publiceras som mono `LocalAudioTrack` med dedikerad `AudioSource`.
+- Parallella tolk-bottar publicerar under identiteten `translator-[språkkod]`.
 - Tokens genereras med klock-skew (`nbf: -5s`) och 15 minuters giltighetstid.
 
-## 3. Web Audio & Safari iOS
+## 3. Web Audio & Enhetsinmatning
+- `navigator.mediaDevices.enumerateDevices()` hämtar alla ljudenheter och NDI.
 - AudioContext körs med fallback-återstart vid Safari `interrupted`-status.
 - DSP-filter inaktiveras selektivt vid ren talkälla.

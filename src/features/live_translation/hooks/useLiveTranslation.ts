@@ -1,23 +1,69 @@
-import { useState, useCallback, useRef } from "react";
-import { SupportedLanguage, SessionStatus } from "../domain/types";
-import { TranslationBridge } from "../domain/translationBridge";
+import { useState, useCallback, useRef, useEffect } from "react";
+import { SupportedLanguage, SessionStatus, AudioInputDevice } from "../domain/types";
+import { MultiBridgeOrchestrator } from "../domain/multiBridgeOrchestrator";
 import { AudioResampler } from "../domain/audioResampler";
 
 export function useLiveTranslation() {
   const [status, setStatus] = useState<SessionStatus>("idle");
   const [targetLanguage, setTargetLanguage] = useState<SupportedLanguage>("sv");
+  const [activeLanguages, setActiveLanguages] = useState<SupportedLanguage[]>(["sv"]);
   const [audioLevel, setAudioLevel] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
+  const [audioDevices, setAudioDevices] = useState<AudioInputDevice[]>([
+    { deviceId: "default", label: "Standardmikrofon" },
+  ]);
+  const [selectedDeviceId, setSelectedDeviceId] = useState<string>("default");
 
-  const bridgeRef = useRef<TranslationBridge | null>(null);
+  const orchestratorRef = useRef<MultiBridgeOrchestrator | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
 
+  // Enhetsenumerering för ljudingång (inkl. NDI Webcam Input och virtuella kablar)
+  const refreshAudioDevices = useCallback(async () => {
+    try {
+      if (!navigator.mediaDevices?.enumerateDevices) {
+        return;
+      }
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const audioInputs = devices
+        .filter((d) => d.kind === "audioinput")
+        .map((d, index) => ({
+          deviceId: d.deviceId || `device-${index}`,
+          label: d.label || (d.deviceId === "default" ? "Standardmikrofon" : `Mikrofon ${index + 1}`),
+        }));
+
+      if (audioInputs.length > 0) {
+        setAudioDevices(audioInputs);
+        if (!selectedDeviceId || selectedDeviceId === "default") {
+          setSelectedDeviceId(audioInputs[0]?.deviceId ?? "default");
+        }
+      }
+    } catch (e) {
+      console.warn("Kunde inte hämta ljudenheter:", e);
+    }
+  }, [selectedDeviceId]);
+
+  useEffect(() => {
+    void refreshAudioDevices();
+    navigator.mediaDevices?.addEventListener?.("devicechange", refreshAudioDevices);
+    return () => {
+      navigator.mediaDevices?.removeEventListener?.("devicechange", refreshAudioDevices);
+    };
+  }, [refreshAudioDevices]);
+
+  const toggleActiveLanguage = useCallback((lang: SupportedLanguage) => {
+    setActiveLanguages((prev) => {
+      const exists = prev.includes(lang);
+      const next = exists ? prev.filter((l) => l !== lang) : [...prev, lang];
+      return next.length === 0 ? [lang] : next;
+    });
+  }, []);
+
   const panicMute = useCallback(() => {
     try {
-      if (bridgeRef.current) {
-        bridgeRef.current.disconnect();
-        bridgeRef.current = null;
+      if (orchestratorRef.current) {
+        orchestratorRef.current.stopAll();
+        orchestratorRef.current = null;
       }
       if (mediaStreamRef.current) {
         mediaStreamRef.current.getTracks().forEach((track) => track.stop());
@@ -50,75 +96,93 @@ export function useLiveTranslation() {
       "demo_key";
 
     try {
-      // 1. Skapa Web Audio Context
       const AudioContextClass =
         window.AudioContext ||
         (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
       const audioCtx = new AudioContextClass({ sampleRate: 48000 });
       audioContextRef.current = audioCtx;
 
-      // 2. Begär mikrofon med DSP-bypass
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: false,
-          noiseSuppression: false,
-          autoGainControl: false,
-          sampleRate: 48000,
-        },
-      });
+      // Begär ljudström med vald enhet (NDI Webcam Input etc.) och DSP-bypass
+      const audioConstraints: MediaTrackConstraints = {
+        echoCancellation: false,
+        noiseSuppression: false,
+        autoGainControl: false,
+        sampleRate: 48000,
+      };
+
+      if (selectedDeviceId && selectedDeviceId !== "default") {
+        audioConstraints.deviceId = { exact: selectedDeviceId };
+      }
+
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: audioConstraints });
       mediaStreamRef.current = stream;
 
-      // 3. Initiera TranslationBridge
-      const bridge = new TranslationBridge(apiKey, targetLanguage, {
-        onAudioData: (samples: Int16Array) => {
-          // Beräkna ljudvolym för mätare
-          let sum = 0;
-          for (let i = 0; i < samples.length; i += 10) {
-            const val = (samples[i] ?? 0) / 0x7fff;
-            sum += val * val;
+      // Uppdatera enhetslista med skarpa etiketter nu när tillstånd beviljats
+      void refreshAudioDevices();
+
+      // Skapa MultiBridgeOrchestrator för parallell flerspråkstolkning
+      const orchestrator = new MultiBridgeOrchestrator(apiKey, {
+        onAudioData: (lang, samples) => {
+          // I lyssnarvy spelas endast det valda språket upp (övriga tystas)
+          if (lang === targetLanguage) {
+            let sum = 0;
+            for (let i = 0; i < samples.length; i += 10) {
+              const val = (samples[i] ?? 0) / 0x7fff;
+              sum += val * val;
+            }
+            const rms = Math.sqrt(sum / (samples.length / 10));
+            setAudioLevel(Math.min(100, Math.round(rms * 200)));
           }
-          const rms = Math.sqrt(sum / (samples.length / 10));
-          setAudioLevel(Math.min(100, Math.round(rms * 200)));
         },
-        onStatusChange: (newStatus) => {
+        onStatusChange: (_lang, newStatus) => {
           setStatus(newStatus);
         },
-        onError: (err) => {
+        onError: (_lang, err) => {
           setError(err);
         },
       });
 
-      bridgeRef.current = bridge;
-      bridge.connect();
+      orchestratorRef.current = orchestrator;
 
-      // 4. Ljudupptagning från mikrofon
+      // Starta alla valda språkparalleller (t.ex. Swahili, Engelska, etc.)
+      const languagesToStart = activeLanguages.length > 0 ? activeLanguages : [targetLanguage];
+      for (const lang of languagesToStart) {
+        orchestrator.startLanguage(lang);
+      }
+
+      // Koppla ljudströmmen till resampling och distribuera till alla bryggor
       const source = audioCtx.createMediaStreamSource(stream);
       const processor = audioCtx.createScriptProcessor(4096, 1, 1);
 
       processor.onaudioprocess = (e) => {
         const inputData = e.inputBuffer.getChannelData(0);
         const pcm16 = AudioResampler.downsample48kTo16k(inputData);
-        bridge.sendAudioChunk(pcm16);
+        orchestrator.broadcastAudio(pcm16);
       };
 
       source.connect(processor);
       processor.connect(audioCtx.destination);
     } catch (err) {
-      console.warn("Kunde inte starta ljudström:", err);
+      console.warn("Kunde inte starta tolkström:", err);
       setError(err instanceof Error ? err.message : "Mikrofonåtkomst nekad");
       setStatus("error");
     }
-  }, [targetLanguage]);
+  }, [selectedDeviceId, targetLanguage, activeLanguages, refreshAudioDevices]);
 
   return {
     status,
     targetLanguage,
+    activeLanguages,
     audioLevel,
+    audioDevices,
+    selectedDeviceId,
     error,
     isRotating: status === "rotating",
+    setSelectedDeviceId,
+    toggleActiveLanguage,
+    setTargetLanguage,
     startTranslation,
     stopTranslation,
     panicMute,
-    setTargetLanguage,
   };
 }

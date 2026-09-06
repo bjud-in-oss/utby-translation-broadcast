@@ -1,4 +1,11 @@
-export type SupportedLanguage = "sv" | "en" | "es" | "de" | "fr" | "ja" | "zh";
+import type { SupportedLanguageCode } from "./languages";
+
+export type SupportedLanguage = SupportedLanguageCode;
+
+export interface AudioInputDevice {
+  deviceId: string;
+  label: string;
+}
 
 export type SessionStatus = "idle" | "connecting" | "active" | "rotating" | "error";
 

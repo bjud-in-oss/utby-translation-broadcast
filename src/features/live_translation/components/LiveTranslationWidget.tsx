@@ -1,29 +1,24 @@
-import React from "react";
 import { useLiveTranslation } from "../hooks/useLiveTranslation";
 import { SupportedLanguage } from "../domain/types";
+import { ALL_LANGUAGES, LANGUAGE_REGIONS } from "../domain/languages";
 
-export function LiveTranslationWidget(): React.JSX.Element {
+export function LiveTranslationWidget() {
   const {
     status,
     targetLanguage,
     audioLevel,
+    audioDevices,
+    selectedDeviceId,
     error,
     isRotating,
+    setSelectedDeviceId,
+    setTargetLanguage,
     startTranslation,
     stopTranslation,
     panicMute,
-    setTargetLanguage,
   } = useLiveTranslation();
 
   const isLive = status === "active" || status === "rotating";
-
-  const handleToggle = () => {
-    if (isLive) {
-      stopTranslation();
-    } else {
-      void startTranslation();
-    }
-  };
 
   return (
     <div id="live-translation-container" className="p-6 bg-stone-50 rounded-xl border border-stone-200 shadow-sm max-w-md w-full">
@@ -53,6 +48,26 @@ export function LiveTranslationWidget(): React.JSX.Element {
 
       <div className="space-y-4">
         <div>
+          <label htmlFor="audio-device-select" className="block text-xs font-medium text-stone-600 mb-1">
+            Ljudingång (mikrofon / NDI)
+          </label>
+          <select
+            id="audio-device-select"
+            aria-label="Välj ljudingång"
+            value={selectedDeviceId}
+            disabled={isLive}
+            onChange={(e) => setSelectedDeviceId?.(e.target.value)}
+            className="w-full bg-white border border-stone-300 rounded-md px-3 py-2 text-sm text-stone-800 focus:ring-1 focus:ring-stone-400 disabled:opacity-50 truncate"
+          >
+            {(audioDevices ?? []).map((dev) => (
+              <option key={dev.deviceId} value={dev.deviceId}>
+                {dev.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
           <label htmlFor="target-lang-select" className="block text-xs font-medium text-stone-600 mb-1">
             Målspråk
           </label>
@@ -62,15 +77,17 @@ export function LiveTranslationWidget(): React.JSX.Element {
             value={targetLanguage}
             disabled={isLive}
             onChange={(e) => setTargetLanguage(e.target.value as SupportedLanguage)}
-            className="w-full bg-white border border-stone-300 rounded-md px-3 py-2 text-sm text-stone-800 focus:outline-none focus:ring-1 focus:ring-stone-400 disabled:opacity-50"
+            className="w-full bg-white border border-stone-300 rounded-md px-3 py-2 text-sm text-stone-800 focus:ring-1 focus:ring-stone-400 disabled:opacity-50"
           >
-            <option value="sv">Svenska (sv)</option>
-            <option value="en">Engelska (en)</option>
-            <option value="es">Spanska (es)</option>
-            <option value="de">Tyska (de)</option>
-            <option value="fr">Franska (fr)</option>
-            <option value="ja">Japanska (ja)</option>
-            <option value="zh">Kinesiska (zh)</option>
+            {LANGUAGE_REGIONS.map((region) => (
+              <optgroup key={region} label={region}>
+                {ALL_LANGUAGES.filter((l) => l.region === region).map((lang) => (
+                  <option key={lang.code} value={lang.code}>
+                    {lang.flag} {lang.name} ({lang.code})
+                  </option>
+                ))}
+              </optgroup>
+            ))}
           </select>
         </div>
 
@@ -92,26 +109,22 @@ export function LiveTranslationWidget(): React.JSX.Element {
           <button
             id="toggle-translation-btn"
             type="button"
-            onClick={handleToggle}
+            onClick={isLive ? stopTranslation : () => void startTranslation()}
             className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-              isLive
-                ? "bg-rose-600 hover:bg-rose-700 text-white"
-                : "bg-stone-900 hover:bg-stone-800 text-white"
+              isLive ? "bg-rose-600 hover:bg-rose-700 text-white" : "bg-stone-900 hover:bg-stone-800 text-white"
             }`}
           >
             {isLive ? "Avsluta tolkning" : "Starta tolkning"}
           </button>
 
-          {isLive && (
-            <button
-              id="panic-mute-btn"
-              type="button"
-              onClick={panicMute}
-              className="py-2 px-3 bg-stone-200 hover:bg-stone-300 text-stone-800 rounded-md text-xs font-medium"
-            >
-              Snabb-tystning
-            </button>
-          )}
+          <button
+            id="panic-mute-btn"
+            type="button"
+            onClick={panicMute}
+            className="py-2 px-3 bg-stone-200 hover:bg-stone-300 text-stone-800 rounded-md text-xs font-medium"
+          >
+            Panik-tystning
+          </button>
         </div>
       </div>
     </div>

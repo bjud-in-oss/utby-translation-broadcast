@@ -1,14 +1,7 @@
 import { z } from "zod";
+import { SUPPORTED_LANGUAGE_CODES } from "./languages";
 
-export const SupportedLanguageSchema = z.enum([
-  "sv",
-  "en",
-  "es",
-  "de",
-  "fr",
-  "ja",
-  "zh",
-]);
+export const SupportedLanguageSchema = z.enum(SUPPORTED_LANGUAGE_CODES);
 
 export const SessionStatusSchema = z.enum([
   "idle",
