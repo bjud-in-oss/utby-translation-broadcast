@@ -1,13 +1,9 @@
-# Steg 2a: Förändra utåt (Vision & Gränssnitt) - TCK-019
+# Steg 2a: Förändra utåt (Vision & Gränssnitt) - TCK-020
 
 ## 1. Yttre gränssnittsförändring och användarupplevelse
-Arrangören och användarna får en avsevärt mer kapabel tolkstation:
-1. **Ljudingångsväljare:** En ny dropdown visar alla tillgängliga mikrofoner och virtuella ingångar (inklusive NDI Webcam Input / BlackHole / virtuella ljudkablar) med realtidsstatus.
-2. **Parallell tolkning:** Arrangören kan aktivera flera samtidiga målspråk samtidigt. Varje språk körs i en separat bakgrundsbrygga under `translator-[språkkod]`.
-3. **Selektiv lyssning:** Lyssnare kan välja sitt önskade språk bland alla globala språk (inklusive Swahili, Somaliska, Amhariska etc.). Övriga kanaler tystas direkt för en ren ljudupplevelse.
-4. **Strukturerad språkmeny:** Målspråken är grupperade geografiskt i rullgardinsmenyn för snabb och intuitiv överblick.
-
-## 2. Visuell design och tillgänglighet
-- Tydlig visuell separation mellan arrangörsinställningar (ingångskälla) och tolkkanaler.
-- Tydliga statusbrickor för varje aktiv språkbrygga.
-- Snabbtystning (panikknapp) tystar samtliga parallella strömmar med ett klick.
+- `LiveTranslationWidget` kläs i ett redaktionellt, elegant formspråk baserat på Variation 3:
+  - Vit behållare med generös padding och djup, mjuk skugga (`box-shadow: 0 40px 100px rgba(0,0,0,0.04)`).
+  - Statusrad med serif-rubrik och monospacad färgkodad statusindikator (`idle`, `active`, `connecting`).
+  - Fälten för ljudingång (inklusive NDI) och målspråk (inklusive Swahili m.fl.) har minimalistiska understrukna kanter.
+  - Ljudvolymsmätaren utformas som en distinkt 4px horisontell mätlinje med procentsats i monospace.
+  - Huvudknappen utformas i djupt bläck med hover-övergång till accentblått.

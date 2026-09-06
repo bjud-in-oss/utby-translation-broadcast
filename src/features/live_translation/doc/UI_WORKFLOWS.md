@@ -16,3 +16,8 @@
 1. Vid oönskad utmatning klickar användaren på "Panik-tystning".
 2. Alla aktiva ljudspår och buffrar rensas omedelbart för alla kanaler.
 3. Tillståndet återställs till `idle`.
+
+## 4. Gränssnittsestetik (Variation 3)
+- Redaktionell estetik inspirerad av Cormorant Garamond, Space Mono och djupt bläck.
+- Understrukna minimalistiska valrutor för enhets- och språkval.
+- 4px hårfin volymmätare och accentuerad statusindikator (`#5e6ef2`).

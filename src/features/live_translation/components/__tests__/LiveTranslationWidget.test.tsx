@@ -50,7 +50,7 @@ vi.mock("../../hooks/useLiveTranslation", () => ({
 }));
 
 describe("LiveTranslationWidget", () => {
-  it("renders initial idle state and controls", () => {
+  it("renders initial idle state and controls with Variation 3 editorial layout", () => {
     render(<LiveTranslationWidget />);
     expect(screen.getByText("Realtidstolkning")).toBeDefined();
     expect(screen.getByRole("button", { name: /starta tolkning/i })).toBeDefined();

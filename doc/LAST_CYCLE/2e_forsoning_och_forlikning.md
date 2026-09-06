@@ -1,11 +1,9 @@
-# Steg 2e: Försoning och förlikning (TCK-019)
+# Steg 2e: Försoning och förlikning (TCK-020)
 
 ## 1. Målkonflikter och förlikningsbeslut
-- **Målkonflikt 1 (Enhetsåtkomst före beviljad behörighet):** `navigator.mediaDevices.enumerateDevices()` returnerar tomma `label`-strängar om mikrofonbehörighet inte beviljats ännu.
-  - *Förlikning:* Hooken begär grundläggande enhetslista först och uppdaterar automatiskt etiketterna så snart behörighet ges vid första anrop eller interaktion.
-- **Målkonflikt 2 (Flera WebSocket-strömmar samtidigt):** Att köra flera Gemini-bryggor parallellt ökar minnes- och nätverksbelastning.
-  - *Förlikning:* `MultiBridgeOrchestrator` kapslar in varje instans med isolerad backpressure-kontroll och möjliggör att endast de specifikt valda språken hålls aktiva.
-- **Målkonflikt 3 (UI-komplexitet och 120-radersbegränsning):** Många språk och enhetsval riskerar att spränga gränsen för `LiveTranslationWidget.tsx`.
-  - *Förlikning:* Språkdata och grupperingar bryts ut helt till `domain/languages.ts`. Hooken `useLiveTranslation` levererar färdiga alternativ och hanterar logiken så att widgeten förblir deklarativ och kompakt (< 120 rader).
+- **Målkonflikt 1 (Typografi och fallback-fonter):** Webbläsare som inte laddat Cormorant Garamond eller Space Mono kan få felaktig layout.
+  - *Förlikning:* CSS konfigurerar robusta fallbacks (`Georgia, serif` och `ui-monospace, monospace`) så att layouten alltid är stabil och läsbar.
+- **Målkonflikt 2 (Panik-tystning vs minimalistisk renhet):** Design Variation 3 hade ingen explicit panikknapp i mockupen.
+  - *Förlikning:* Panik-tystningsknappen placeras stilrent bredvid huvudknappen vid aktiv session i matchande Space Mono-stil så att säkerhetskraven från TCK-019 bibehålls utan att störa designens lugn.
 
 MÄTTNAD: JA

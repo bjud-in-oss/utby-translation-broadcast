@@ -21,34 +21,35 @@ export function LiveTranslationWidget() {
   const isLive = status === "active" || status === "rotating";
 
   return (
-    <div id="live-translation-container" className="p-6 bg-stone-50 rounded-xl border border-stone-200 shadow-sm max-w-md w-full">
-      <div className="flex items-center justify-between mb-4">
-        <h2 id="translation-title" className="text-lg font-medium text-stone-900">Realtidstolkning</h2>
-        <span
-          id="status-badge"
-          className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${
-            isLive ? "bg-emerald-100 text-emerald-800" : "bg-stone-200 text-stone-700"
-          }`}
-        >
+    <div id="live-translation-container" className="relative bg-white p-8 sm:p-12 rounded-sm shadow-[0_40px_100px_rgba(0,0,0,0.04)] border border-stone-200/70 overflow-hidden w-full max-w-lg">
+      <div className="absolute -bottom-20 -right-6 text-[16rem] font-serif italic text-stone-900/[0.03] select-none pointer-events-none" style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}>
+        G
+      </div>
+
+      <div className="flex justify-between items-baseline mb-8 pb-4 border-b border-stone-900/[0.08]">
+        <h2 id="translation-title" className="text-3xl font-semibold tracking-tight text-stone-900" style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}>
+          Realtidstolkning
+        </h2>
+        <span id="status-badge" className="font-mono text-xs font-bold uppercase tracking-wider text-[#5e6ef2]" style={{ fontFamily: "'Space Mono', monospace" }}>
           {status}
         </span>
       </div>
 
       {isRotating && (
-        <div id="hot-swap-banner" className="mb-3 p-2 bg-amber-50 border border-amber-200 rounded text-xs text-amber-800">
+        <div id="hot-swap-banner" className="mb-6 p-3 bg-amber-50/80 border border-amber-200 font-mono text-xs text-amber-900">
           Hot-swap aktiv: sömlös överlämning pågår...
         </div>
       )}
 
       {error && (
-        <div id="error-banner" className="mb-3 p-2 bg-rose-50 border border-rose-200 rounded text-xs text-rose-700">
+        <div id="error-banner" className="mb-6 p-3 bg-rose-50/80 border border-rose-200 font-mono text-xs text-rose-800">
           {error}
         </div>
       )}
 
-      <div className="space-y-4">
+      <div className="space-y-7">
         <div>
-          <label htmlFor="audio-device-select" className="block text-xs font-medium text-stone-600 mb-1">
+          <label htmlFor="audio-device-select" className="block font-mono text-[0.7rem] uppercase tracking-widest text-stone-900/50 mb-2" style={{ fontFamily: "'Space Mono', monospace" }}>
             Ljudingång (mikrofon / NDI)
           </label>
           <select
@@ -57,7 +58,7 @@ export function LiveTranslationWidget() {
             value={selectedDeviceId}
             disabled={isLive}
             onChange={(e) => setSelectedDeviceId?.(e.target.value)}
-            className="w-full bg-white border border-stone-300 rounded-md px-3 py-2 text-sm text-stone-800 focus:ring-1 focus:ring-stone-400 disabled:opacity-50 truncate"
+            className="w-full bg-transparent border-0 border-b-2 border-stone-900 py-2.5 text-base text-stone-900 outline-none cursor-pointer focus:border-[#5e6ef2] disabled:opacity-40 transition-colors"
           >
             {(audioDevices ?? []).map((dev) => (
               <option key={dev.deviceId} value={dev.deviceId}>
@@ -68,7 +69,7 @@ export function LiveTranslationWidget() {
         </div>
 
         <div>
-          <label htmlFor="target-lang-select" className="block text-xs font-medium text-stone-600 mb-1">
+          <label htmlFor="target-lang-select" className="block font-mono text-[0.7rem] uppercase tracking-widest text-stone-900/50 mb-2" style={{ fontFamily: "'Space Mono', monospace" }}>
             Målspråk
           </label>
           <select
@@ -77,7 +78,7 @@ export function LiveTranslationWidget() {
             value={targetLanguage}
             disabled={isLive}
             onChange={(e) => setTargetLanguage(e.target.value as SupportedLanguage)}
-            className="w-full bg-white border border-stone-300 rounded-md px-3 py-2 text-sm text-stone-800 focus:ring-1 focus:ring-stone-400 disabled:opacity-50"
+            className="w-full bg-transparent border-0 border-b-2 border-stone-900 py-2.5 text-base text-stone-900 outline-none cursor-pointer focus:border-[#5e6ef2] disabled:opacity-40 transition-colors"
           >
             {LANGUAGE_REGIONS.map((region) => (
               <optgroup key={region} label={region}>
@@ -92,26 +93,26 @@ export function LiveTranslationWidget() {
         </div>
 
         <div>
-          <div className="flex justify-between text-xs text-stone-500 mb-1">
-            <span>Ljudvolym</span>
-            <span>{audioLevel}%</span>
+          <div className="flex justify-between items-baseline mb-2">
+            <label className="font-mono text-[0.7rem] uppercase tracking-widest text-stone-900/50" style={{ fontFamily: "'Space Mono', monospace" }}>
+              Ljudvolym
+            </label>
+            <span className="font-mono text-xs text-stone-900 font-bold" style={{ fontFamily: "'Space Mono', monospace" }}>
+              {audioLevel}%
+            </span>
           </div>
-          <div id="audio-level-meter" className="w-full bg-stone-200 h-2 rounded-full overflow-hidden">
-            <div
-              id="audio-level-fill"
-              className="bg-emerald-500 h-full transition-all duration-75"
-              style={{ width: `${audioLevel}%` }}
-            />
+          <div id="audio-level-meter" className="h-1 bg-stone-900/[0.08] rounded-full overflow-hidden">
+            <div id="audio-level-fill" className="h-full bg-stone-900 transition-all duration-75" style={{ width: `${audioLevel}%` }} />
           </div>
         </div>
 
-        <div className="flex gap-2 pt-2">
+        <div className="flex gap-3 pt-4">
           <button
             id="toggle-translation-btn"
             type="button"
             onClick={isLive ? stopTranslation : () => void startTranslation()}
-            className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-              isLive ? "bg-rose-600 hover:bg-rose-700 text-white" : "bg-stone-900 hover:bg-stone-800 text-white"
+            className={`flex-1 py-4 px-6 text-sm font-semibold tracking-wider transition-colors duration-200 cursor-pointer ${
+              isLive ? "bg-rose-700 hover:bg-rose-800 text-white" : "bg-[#1a1a1a] hover:bg-[#5e6ef2] text-[#f8f7f4]"
             }`}
           >
             {isLive ? "Avsluta tolkning" : "Starta tolkning"}
@@ -121,7 +122,8 @@ export function LiveTranslationWidget() {
             id="panic-mute-btn"
             type="button"
             onClick={panicMute}
-            className="py-2 px-3 bg-stone-200 hover:bg-stone-300 text-stone-800 rounded-md text-xs font-medium"
+            className="py-4 px-4 bg-stone-100 hover:bg-stone-200 text-stone-900 font-mono text-xs tracking-wider cursor-pointer border border-stone-300/80 transition-colors"
+            style={{ fontFamily: "'Space Mono', monospace" }}
           >
             Panik-tystning
           </button>
