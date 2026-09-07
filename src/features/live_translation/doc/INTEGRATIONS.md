@@ -6,13 +6,12 @@
 - Payload: Endast `translationConfig` och `responseModalities: ["AUDIO"]`.
 - Felkoder 1008/1011 undviks genom att utesluta text, verktyg och systemprompt.
 
-## 2. LiveKit Cloud SFU
-- URL-protokoll: `wss://...livekit.cloud`
-- SDK: `livekit-client` v2
-- Ljudspår publiceras som mono `LocalAudioTrack` med dedikerad `AudioSource`.
-- Parallella tolk-bottar publicerar under identiteten `translator-[språkkod]`.
-- Tokens genereras med klock-skew (`nbf: -5s`) och 15 minuters giltighetstid.
-- Miljövariabler (`LIVEKIT_URL`, `LIVEKIT_API_KEY`, `GEMINI_API_KEY`) valideras vid uppstart med UI-varningsindikator vid saknade värden.
+## 2. Cloudflare SFU & Lokal WebSocket
+- Protokoll: WebRTC Cloudflare Calls SFU eller Lokal WS-brygga.
+- SDK: Ren WebRTC / WebSocket-klient.
+- Ljudspår publiceras som mono WebRTC MediaStreamTrack med dedikerad AudioProcessor.
+- Parallella tolk-strömmar publicerar under identiteten `translator-[språkkod]`.
+- Endast nödvändiga miljövariabler (`GEMINI_API_KEY`) valideras vid uppstart.
 
 ## 3. Web Audio & Enhetsinmatning
 - `navigator.mediaDevices.enumerateDevices()` och `devicechange` hämtar alla ljudenheter och NDI.

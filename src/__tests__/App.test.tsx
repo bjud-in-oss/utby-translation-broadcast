@@ -22,6 +22,7 @@ describe("App Root Component", () => {
     render(<App />);
 
     expect(screen.getByText("Live Translation")).toBeDefined();
+    expect(screen.getByText(/Cloudflare SFU \/ Lokal WS/i)).toBeDefined();
     expect(screen.getByText("Realtidstolkning")).toBeDefined();
     expect(screen.getByRole("button", { name: /starta tolkning/i })).toBeDefined();
   });

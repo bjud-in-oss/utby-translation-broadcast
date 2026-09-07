@@ -13,7 +13,6 @@ export type {
   AudioInputDevice,
   AudioFrameData,
   TranslationSessionConfig,
-  LiveKitTokenRequest,
   TokenResponse,
   ResumptionState,
 } from "./domain/types";
@@ -21,6 +20,5 @@ export type {
 export {
   SupportedLanguageSchema,
   SessionStatusSchema,
-  LiveKitTokenRequestSchema,
   TranslationSessionConfigSchema,
 } from "./domain/schema";

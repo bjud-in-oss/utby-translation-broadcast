@@ -1,24 +1,14 @@
-# Steg 1b: Kartlägga (TCK-004: Spårkvot och administrativ säkerhetsspärr)
+# Steg 1b: Kartlägga (TCK-005)
 
-## 1. Besvarande av GROW-frågorna mot Risknoder
-
-### Svar GROW 1 (State / Förbrukningsackumulering & Månadsväxling):
-Sekundförbrukningen beräknas som `(1 + interpreterTracks) * listeners * (1 / 60)`. Ackumulerad förbrukning sparas i localStorage under nyckeln `quota_usage_YYYY_MM` (t.ex. `quota_usage_2026_09`). Vid byte av månad adresseras automatiskt en ny nyckel vilket leder till en ren nollställning vid varje månadsskifte utan migrationsskript.
-
-### Svar GROW 2 (Contract / Tregradig Spärrlogik & Ren TS):
-`QuotaService` implementeras som en ren TypeScript-klass utan React/DOM-beroenden. Den accepterar en valfri `StorageLike`-adapter (default till `localStorage` om tillgänglig eller in-memory för isolerade tester). Den exponerar nivåerna `normal`, `warning_yellow` (>= 6 000), `warning_red` (>= 8 000) och `hard_stop` (>= 9 000).
-
-### Svar GROW 3 (Effects & Resilience / Automatisk Frånkoppling & UI):
-När ackumulerad förbrukning når 9 000 minuter triggas `hard_stop`. `useQuotaGuard`-hooken lyssnar på förändringen och anropar `stopTranslation()` för att omedelbart stänga audio-pipelines och WebSocket. Ny anslutning blockeras. Arrangören presenteras med mätare, förvarningar med möjlighet att stänga av tolkspår vid 6 000 minuter, samt ett tydligt felmeddelande vid hårt stopp.
-
----
+## Svar på GROW-frågor
+1. **Contract & State:** `LiveKitTokenRequestSchema` tas bort helt ur `domain/schema.ts` och `LiveKitTokenRequest` tas bort ur `domain/types.ts`. `TranslationSessionConfigSchema` och `TranslationSessionConfig` behåller endast `sessionId`, `targetLanguage`, `echoTargetLanguage` och `geminiApiKey`. Zod-validering förblir aktiv med `SupportedLanguageSchema`, `SessionStatusSchema`, `QuotaLevelSchema` och `QuotaUsageSchema`.
+2. **Effects & Pacing:** Gemini Live BidiGenerateContent är full-duplex och strömmar 24 kHz kontinuerligt; tur-baserad durationsprediktion (`calculateRegressionModel`, `predictTurnDuration`) är inte längre relevant och markeras med `@deprecated` eller ersätts med buffertbaserad slew (`calculateBufferSlewRate`). `AudioProcessor.worklet.ts` förblir orörd med sin 300 ms (7 200 samples) målnivå och micro-slew rate limiting.
+3. **Resilience:** I `useLiveTranslation.ts` tas kontrollerna för `LIVEKIT_URL` och `LIVEKIT_API_KEY` bort, vilket eliminerar falsklarm i UI:t och lämnar endast validering av `GEMINI_API_KEY`.
 
 ```json
 {
-  "active_vectors": ["admin_quota_guard"],
-  "status": "IN_PROGRESS",
-  "current_domain": "live_translation",
-  "next_step": "2a_forandra_utat_vision",
-  "ticket_id": "TCK-004"
+  "active_vectors": [
+    "livekit_cleanup_refactor"
+  ]
 }
 ```

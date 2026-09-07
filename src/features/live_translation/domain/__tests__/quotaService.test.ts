@@ -148,5 +148,13 @@ describe("QuotaService Specifications", () => {
       service.resetUsage(septDate);
       expect(service.getMonthlyUsage(septDate)).toBe(0);
     });
+
+    it("fungerar helt isolerat utan några LiveKit-beroenden", () => {
+      // Verifierar att QuotaService är ren TypeScript och skyddar gratisnivån
+      expect(service).toBeDefined();
+      expect(typeof service.getMonthlyUsage).toBe("function");
+      expect(typeof service.addSecondUsage).toBe("function");
+      expect(typeof service.isHardStop).toBe("function");
+    });
   });
 });

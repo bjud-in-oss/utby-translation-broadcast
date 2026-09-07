@@ -3,7 +3,7 @@
 ## 1. Sessionshantering och Tidsgränser
 - Gemini Live Translate API stänger sessioner hårt vid 15 minuter.
 - Bryggan initierar proaktiv hot-swap vid 14:00 (840 sekunder).
-- LiveKit AudioSource och LocalAudioTrack bibehålls intakta under rotation.
+- Cloudflare SFU och Web Audio AudioTracks bibehålls intakta under rotation.
 - Vid oväntat anslutningstapp sker automatisk återanslutning med exponential backoff (3 försök: 1s, 2s, 4s).
 - WebAudio AudioContext låses upp synkront vid startklick för att kringgå iOS Safari autoplay-spärr.
 

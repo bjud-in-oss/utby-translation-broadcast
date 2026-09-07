@@ -35,8 +35,6 @@ export function useLiveTranslation() {
     };
 
     const missing: string[] = [];
-    if (!getEnv("LIVEKIT_URL")) missing.push("LIVEKIT_URL");
-    if (!getEnv("LIVEKIT_API_KEY")) missing.push("LIVEKIT_API_KEY");
     if (!getEnv("GEMINI_API_KEY")) missing.push("GEMINI_API_KEY");
 
     if (missing.length > 0) {

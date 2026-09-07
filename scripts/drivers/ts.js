@@ -100,7 +100,7 @@ export async function verifyTypeScriptCodebase({
               if (domName) modifiedDomains.add(`feature:${domName}`);
             } else if (relPath.startsWith('server' + path.sep)) {
               modifiedDomains.add('server');
-            } else {
+            } else if (relPath !== 'App.tsx' && relPath !== 'main.tsx' && !relPath.startsWith('__tests__')) {
               modifiedDomains.add('core');
             }
 

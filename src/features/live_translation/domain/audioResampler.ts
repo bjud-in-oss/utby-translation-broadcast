@@ -3,7 +3,7 @@
  * Utför linjär interpolation och konvertering mellan Float32 och Int16 PCM.
  * Stödjer:
  * - 48 kHz Float32 (Web Audio) -> 16 kHz Int16 (Gemini Ingest) med anti-aliasing lågpassfilter
- * - 24 kHz Int16 (Gemini Output) -> 48 kHz Float32 (Web Audio / LiveKit)
+ * - 24 kHz Int16 (Gemini Output) -> 48 kHz Float32 (Web Audio / Cloudflare SFU)
  * - Uppdelning i 480-samplers 20ms ramar för WebRTC pacing.
  * - Base64 serialisering för WebSocket transport.
  */

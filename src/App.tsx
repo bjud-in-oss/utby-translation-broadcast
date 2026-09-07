@@ -8,7 +8,7 @@ export function App() {
           Live Translation
         </h1>
         <p id="app-subtitle" className="mt-2 text-sm text-stone-600">
-          Realtids simultantolkning med Gemini Live och LiveKit SFU.
+          Realtids simultantolkning med Gemini Live och Cloudflare SFU / Lokal WS.
         </p>
       </header>
       <LiveTranslationWidget />

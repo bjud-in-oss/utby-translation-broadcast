@@ -1,6 +1,6 @@
-# Steg 2b: Evaluera yttre anpassning (TCK-004)
+# Steg 2b: Evaluera yttre anpassning (TCK-005)
 
-## 1. Yttre beroenden och integration
-- **Cloudflare Calls API vs Klientberäkning:** Eftersom Cloudflare Calls debiterar per aktiv spårminut för varje deltagare/lyssnare, speglar formeln `(1 + Tolkspår) * Lyssnare * (1 / 60)` den exakta minutåtgången.
-- **Lokal redundans:** Förbrukningen persisteras säkert i klientens webbläsare så att sessioner och omladdningar behåller ackumulerat värde under månaden.
-- **Användargränssnitt:** Mätaren visas diskret och professionellt i arrangörens kontrollpanel utan att störa den redaktionella estetiken i `LiveTranslationWidget`.
+## Utvärdering
+1. Kontrakt och typer i `src/features/live_translation/` förenklas och blir renare.
+2. Inga oanvända miljövariabler krävs eller varnas för vid applikationsstart.
+3. Ingen risk för trasiga importer i `src/App.tsx` eller externa komponenter.

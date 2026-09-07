@@ -21,15 +21,6 @@ export interface TranslationSessionConfig {
   targetLanguage: SupportedLanguage;
   echoTargetLanguage?: boolean;
   geminiApiKey: string;
-  livekitUrl?: string;
-  livekitToken?: string;
-}
-
-export interface LiveKitTokenRequest {
-  roomName: string;
-  participantIdentity: string;
-  role: "broadcaster" | "listener" | "bridge_bot";
-  targetLanguage?: SupportedLanguage;
 }
 
 export interface TokenResponse {

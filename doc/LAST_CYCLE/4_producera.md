@@ -1,24 +1,21 @@
-# Steg 4: Producera (TCK-004)
+# Steg 4: Producera (TCK-005)
 
-## Genomförd implementation
-1. **TDD-exekvering i Fas 2 (Steg 4):**
-   - Skapade `src/features/live_translation/domain/__tests__/quotaService.test.ts` med explicita `expect()`-påståenden *före* produktionskoden.
-   - Verifierade formeln för sekundförbrukning: `(1 + Tolkspår) * Lyssnare * (1 / 60)`.
-   - Verifierade dynamisk månadsnyckel `quota_usage_YYYY_MM` och automatisk nollställning vid månadsskifte.
-   - Verifierade tregradig spärrlogik: Gul (6 000 min), Röd (8 000 min), HÅRT STOPP (9 000 min, 10 % buffert till Cloudflare 10 000 min limit).
-   - Uppdaterade `LiveTranslationWidget.test.tsx` med interaktionstester för realtidsmätare, bortkoppling av tolkspår och hårt stopp.
-
-2. **QuotaService (Ren TS):**
-   - Implementerade `src/features/live_translation/domain/quotaService.ts` som ren TypeScript utan React- eller DOM-beroenden.
-   - Stöd för flexibel `StorageLike`-adapter (standardiserad mot webbläsarens `localStorage` och in-memory fallback för isolerad körning).
-   - Exponerade callbacks och deterministiska beräkningsfunktioner.
-
-3. **Orkestrering och Gränssnitt:**
-   - Skapade `useQuotaGuard`-hooken för 1-sekunds intervall-ackumulering, synkronisering mot servicen och automatisk avstängning vid nådd gräns.
-   - Skapade `QuotaMeter`-komponenten för visuell mätare, tröskelfärger och snabbknapp för att koppla från tolkspår vid förvarning.
-   - Integrerade i `LiveTranslationWidget` med avstängningsmeddelande och spärr mot att starta ny session när kvottaket nåtts.
-
-4. **Arkitektur och Typsäkerhet:**
-   - Inga importer från `@livekit/rtc-node` eller `deprecated/`.
-   - Eliminerade `any`, tomma catch-block och höll samtliga filer strikt under 250 rader.
-   - Exporterade Zod-scheman i `domain/schema.ts`.
+## Genomförda förändringar
+1. **useLiveTranslation.ts**:
+   - Rensat bort alla kontroller och varningar för `LIVEKIT_URL` och `LIVEKIT_API_KEY`.
+   - Endast `GEMINI_API_KEY` valideras vid uppstart.
+2. **domain/schema.ts**:
+   - `LiveKitTokenRequestSchema` borttaget.
+   - `livekitUrl` och `livekitToken` borttagna ur `TranslationSessionConfigSchema`.
+3. **domain/types.ts**:
+   - `LiveKitTokenRequest` borttagen.
+   - `livekitUrl` och `livekitToken` borttagna ur `TranslationSessionConfig`.
+4. **index.ts**:
+   - Re-exporter för LiveKit-typer och scheman borttagna.
+5. **domain/adaptiveLogic.ts**:
+   - `calculateRegressionModel` och `predictTurnDuration` har markerats som `@deprecated` med förtydligande om Gemini Live BidiGenerateContent full-duplex.
+   - Adaptiv ringbuffert-slew (`calculateAdaptiveSlewRate`) tillagd för integration med `AudioProcessor.worklet.ts`.
+6. **src/App.tsx**:
+   - UI-text uppdaterad till att referera till Cloudflare SFU / Lokal WS.
+7. **Tester**:
+   - Enhetstester uppdaterade: inga förväntningar på `LIVEKIT`-miljövariabler finns kvar.

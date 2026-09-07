@@ -74,7 +74,7 @@ vi.mock("../../hooks/useLiveTranslation", () => ({
       }),
       isRotating: status === "rotating",
       error: null,
-      configWarning: "Saknade miljövariabler i .env.local: LIVEKIT_URL",
+      configWarning: "Saknade miljövariabler i .env.local: GEMINI_API_KEY",
       unlockAudioContext,
     };
   },
