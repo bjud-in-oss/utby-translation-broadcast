@@ -1,9 +1,9 @@
-# Steg 1a: Orientera (TCK-006)
+# Steg 1a: Orientera (TCK-007)
 
 ## Mål
-Etablera det abstrakta transportkontraktet `AudioTransportAdapter` och implementera `CloudflareSFUAdapter` för WebRTC/Cloudflare Calls SFU, samt refaktorisera `useCloudflareSFU` till att delegera till adaptern.
+Implementera `LocalWebSocketAdapter` och `useLocalWebSocket` enligt `doc/skills/local-websocket-wsola-bridge.md`. Adaptern ska implementera `AudioTransportAdapter` för lokal ljudströmning över TCP/WebSocket i nätverksmiljöer med spärrade UDP-portar (kyrkor, skolor, offentliga nät).
 
 ## GROW-frågor mot ändringens faktiska risknoder
-1. **Contract (Transport-abstraktion):** Hur utformas gränssnittet `AudioTransportAdapter` i `src/features/live_translation/domain/types.ts` så att det enhetligt abstraherar både WebRTC/SFU och framtida WebSocket/WSOLA-transporter utan att läcka transportinterna protokoll i domänlagret?
-2. **State & Effects (Livscykel och tillståndsövergångar):** Hur hanterar `CloudflareSFUAdapter` tillstånden (`disconnected`, `connecting`, `connected`, `error`) och hanteringen av `onStatusChange`-callbacks så att asynkron SDP-förhandling och ICE-gathering inte lämnar hängande transceivers vid fel?
-3. **Resilience (Browser-resiliens och Safari-lås):** Hur säkerställs att iOS Safari audio-upplåsning och avregistrering vid unmount orkestreras sömlöst mellan `CloudflareSFUAdapter` och React-hooken `useCloudflareSFU` utan att göra adaptern beroende av globala DOM-objekt vid enhetstestning?
+1. **Contract & Dynamic Protocol (Protokollväxling och transportkontrakt):** Hur ska `LocalWebSocketAdapter` dynamiskt switcha mellan `wss://` vid HTTPS och `ws://` vid HTTP när ingen explicit `serverUrl` anges, och hur säkerställs att `AudioTransportAdapter`-kontraktet uppfylls utan avvikelser i metodsignaturer?
+2. **State, Buffer & Backpressure (Zero-GC och TCP-resiliens):** Hur hanteras mikropauser och TCP-backpressure så att 100 ms-ramar kasseras om `ws.bufferedAmount > 128 KB`, och hur matas inkommande PCM-paket via `AudioProcessor.worklet.ts` för adaptiv 300 ms WSOLA-slew utan onödiga minnesallokeringar?
+3. **Effects & Resilience (AudioWorklet-laddning och AudioContext-upplåsning):** Hur ska `MicCapture.worklet.ts` och `AudioProcessor.worklet.ts` laddas säkert via `audioCtx.audioWorklet.addModule` med graciös fallback i testmiljöer, och hur orkestrerar `useLocalWebSocket` synkron iOS Safari audio-upplåsning vid användarinteraktion?

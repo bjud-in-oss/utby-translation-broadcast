@@ -1,5 +1,5 @@
-# Steg 2a: Förändra utåt - Vision (TCK-006)
+# Steg 2a: Förändra utåt - Vision (TCK-007)
 
 ## Målbild
-Skapa en modulär och utbytbar transportarkitektur för simultantolkning.
-Genom att frikoppla ljudtransporten bakom gränssnittet `AudioTransportAdapter` kan applikationen sömlöst växla mellan Cloudflare Calls WebRTC SFU och lokala TCP WebSocket-bryggor utan ändringar i den överliggande domänlogiken eller användargränssnittet.
+Skapa en robust TCP-baserad ljudtransportadapter (`LocalWebSocketAdapter`) för lokal distribution i begränsade nätverk (som kyrkor eller skolor) där UDP-portar blockeras av brandväggar.
+Adaptern implementerar `AudioTransportAdapter` och tillhandahåller adaptiv WSOLA-jitterbuffring (300 ms mål) samt Zero-GC binär överföring med backpressure-skydd. Hooken `useLocalWebSocket` ger ett reaktivt gränssnitt med iOS Safari-resiliens.

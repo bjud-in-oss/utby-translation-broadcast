@@ -73,6 +73,14 @@ class AudioProcessor extends AudioWorkletProcessor {
       this.initialized = true;
       
       console.log(`[AudioWorklet] Initialized with buffer size ${size}`);
+    } else if (type === 'PCM_DATA' && this.initialized && this.audioBuffer && this.writeIndexPtr) {
+      const int16 = payload instanceof Int16Array ? payload : new Int16Array(payload);
+      let writeIndex = Atomics.load(this.writeIndexPtr, 0);
+      for (let i = 0; i < int16.length; i++) {
+        this.audioBuffer[writeIndex & this.mask] = int16[i] / 32768.0;
+        writeIndex++;
+      }
+      Atomics.store(this.writeIndexPtr, 0, writeIndex);
     }
   }
 
