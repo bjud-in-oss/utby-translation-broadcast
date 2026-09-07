@@ -1,4 +1,4 @@
-# Godkännande för Fas 2 (Steg 4 TDD)
+# Godkännande för Fas 2 (Steg 4)
 
-Token: `TOKEN-TCK003-BRIDGE-9871`
-Godkänd av användare för implementation av TCK-003.
+Godkänd token: TOKEN-TCK004-QUOTA-8412
+Godkännande givet för TCK-004: Spårkvot och administrativ säkerhetsspärr (admin-quota-guard).

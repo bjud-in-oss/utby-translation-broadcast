@@ -26,3 +26,18 @@ export const TranslationSessionConfigSchema = z.object({
   livekitUrl: z.string().url().optional(),
   livekitToken: z.string().optional(),
 });
+
+export const QuotaLevelSchema = z.enum([
+  "normal",
+  "warning_yellow",
+  "warning_red",
+  "hard_stop",
+]);
+
+export const QuotaUsageSchema = z.object({
+  monthKey: z.string().regex(/^quota_usage_\d{4}_\d{2}$/),
+  trackMinutes: z.number().min(0),
+  level: QuotaLevelSchema,
+  hardStopLimit: z.number().default(9000),
+});
+

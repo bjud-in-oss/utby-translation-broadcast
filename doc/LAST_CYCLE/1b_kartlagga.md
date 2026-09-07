@@ -1,24 +1,24 @@
-# Steg 1b: Kartlägga (TCK-003: Cloudflare Calls SFU Worker-proxy och Gemini Live Bridge)
+# Steg 1b: Kartlägga (TCK-004: Spårkvot och administrativ säkerhetsspärr)
 
 ## 1. Besvarande av GROW-frågorna mot Risknoder
 
-### Svar GROW 1 (Ljudresampling, Clamping och 100 ms-paketering):
-I `translationBridge.ts` ackumuleras inkommande ljud i 1600 samplers block (100 ms vid 16 kHz) vilket sänker WebSocket-frekvensen till 10 Hz. Clamping `Math.max(-1, Math.min(1, sample))` appliceras före skalning till 16-bit signed integer.
+### Svar GROW 1 (State / Förbrukningsackumulering & Månadsväxling):
+Sekundförbrukningen beräknas som `(1 + interpreterTracks) * listeners * (1 / 60)`. Ackumulerad förbrukning sparas i localStorage under nyckeln `quota_usage_YYYY_MM` (t.ex. `quota_usage_2026_09`). Vid byte av månad adresseras automatiskt en ny nyckel vilket leder till en ren nollställning vid varje månadsskifte utan migrationsskript.
 
-### Svar GROW 2 (Backpressure och Hot Swap-resiliens):
-Om `ws.bufferedAmount > 128 * 1024` (128 KB) droppas ramen för att förhindra lagg. Setup-payloaden inkluderar `contextWindowCompressionConfig: { slidingWindow: {} }`. `newHandle` från `sessionResumptionUpdate` sparas i `HotSwapManager`, och `goAway.timeLeft` hanteras med timer för proaktiv sömlös övergång.
+### Svar GROW 2 (Contract / Tregradig Spärrlogik & Ren TS):
+`QuotaService` implementeras som en ren TypeScript-klass utan React/DOM-beroenden. Den accepterar en valfri `StorageLike`-adapter (default till `localStorage` om tillgänglig eller in-memory för isolerade tester). Den exponerar nivåerna `normal`, `warning_yellow` (>= 6 000), `warning_red` (>= 8 000) och `hard_stop` (>= 9 000).
 
-### Svar GROW 3 (Jitter- och Slew-adaption):
-`AudioProcessor.worklet.ts` och `adaptiveLogic.ts` importeras för ringbuffert och dynamisk hastighetsjustering (+/- 3–5 %) baserad på buffertfyllnadsgrad och regressionsmodellering.
+### Svar GROW 3 (Effects & Resilience / Automatisk Frånkoppling & UI):
+När ackumulerad förbrukning når 9 000 minuter triggas `hard_stop`. `useQuotaGuard`-hooken lyssnar på förändringen och anropar `stopTranslation()` för att omedelbart stänga audio-pipelines och WebSocket. Ny anslutning blockeras. Arrangören presenteras med mätare, förvarningar med möjlighet att stänga av tolkspår vid 6 000 minuter, samt ett tydligt felmeddelande vid hårt stopp.
 
 ---
 
 ```json
 {
-  "active_vectors": ["sfu_gemini_bridge"],
+  "active_vectors": ["admin_quota_guard"],
   "status": "IN_PROGRESS",
   "current_domain": "live_translation",
   "next_step": "2a_forandra_utat_vision",
-  "ticket_id": "TCK-003"
+  "ticket_id": "TCK-004"
 }
 ```

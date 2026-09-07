@@ -2,6 +2,33 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { useState } from "react";
 import { LiveTranslationWidget } from "../LiveTranslationWidget";
+import { QuotaLevel } from "../../domain/quotaService";
+
+let mockQuotaState: {
+  usage: number;
+  quotaLevel: QuotaLevel;
+  isHardStopped: boolean;
+  interpreterTracksDisabled: boolean;
+  listenersCount: number;
+} = {
+  usage: 120,
+  quotaLevel: "normal",
+  isHardStopped: false,
+  interpreterTracksDisabled: false,
+  listenersCount: 1,
+};
+
+vi.mock("../../hooks/useQuotaGuard", () => ({
+  useQuotaGuard: () => ({
+    ...mockQuotaState,
+    toggleInterpreterTracks: vi.fn(() => {
+      mockQuotaState.interpreterTracksDisabled = !mockQuotaState.interpreterTracksDisabled;
+    }),
+    setListenersCount: vi.fn(),
+    resetMonthlyUsage: vi.fn(),
+    thresholds: { yellow: 6000, red: 8000, hardStop: 9000, max: 10000 },
+  }),
+}));
 
 // Mock the hook so tests isolate UI behavior cleanly
 vi.mock("../../hooks/useLiveTranslation", () => ({
@@ -59,6 +86,7 @@ describe("LiveTranslationWidget", () => {
     expect(screen.getByText("Realtidstolkning")).toBeDefined();
     expect(screen.getByText(/Saknade miljövariabler/i)).toBeDefined();
     expect(screen.getByRole("button", { name: /starta tolkning/i })).toBeDefined();
+    expect(screen.getByText(/Spårkvot/i)).toBeDefined();
   });
 
   it("handles start and stop translation interactions", () => {
@@ -97,5 +125,36 @@ describe("LiveTranslationWidget", () => {
     const panicBtn = screen.getByRole("button", { name: /panik-tystning/i });
     fireEvent.click(panicBtn);
     expect(panicBtn).toBeDefined();
+  });
+
+  it("shows yellow warning and allows disconnecting interpreter tracks manually", () => {
+    mockQuotaState = {
+      usage: 6500,
+      quotaLevel: "warning_yellow",
+      isHardStopped: false,
+      interpreterTracksDisabled: false,
+      listenersCount: 5,
+    };
+
+    render(<LiveTranslationWidget />);
+    expect(screen.getByText(/GUL VARNING/i)).toBeDefined();
+    const disconnectBtn = screen.getByRole("button", { name: /koppla från tolkspår/i });
+    fireEvent.click(disconnectBtn);
+    expect(disconnectBtn).toBeDefined();
+  });
+
+  it("displays hard stop notice and blocks start button when quota is exhausted", () => {
+    mockQuotaState = {
+      usage: 9005,
+      quotaLevel: "hard_stop",
+      isHardStopped: true,
+      interpreterTracksDisabled: false,
+      listenersCount: 10,
+    };
+
+    render(<LiveTranslationWidget />);
+    expect(screen.getByText(/Sändningen har stängts av automatiskt/i)).toBeDefined();
+    const startBtn = screen.getByRole("button", { name: /kvottaket nått/i });
+    expect((startBtn as HTMLButtonElement).disabled).toBe(true);
   });
 });

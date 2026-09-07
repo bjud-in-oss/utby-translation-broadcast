@@ -1,9 +1,9 @@
-# Steg 2e: Försoning och förlikning (TCK-003)
+# Steg 2e: Försoning och förlikning (TCK-004)
 
 ## 1. Målkonflikter och förlikningsbeslut
-- **Målkonflikt 1 (Jitter vs Latens):** En stor ringbuffert förhindrar jitter men ökar tidsfördröjningen i tolkningen.
-  - *Förlikning:* Använd dynamisk slew (+/- 3–5 %) för att hålla bufferten kring 300 ms utan att introducera hörbara tonhöjdsartefakter.
-- **Målkonflikt 2 (Paketeringsstorlek vs Nätverksoverhead):** 20 ms ramar ger låg latens men 50 Hz meddelandefrekvens belastar WebSocket och klient.
-  - *Förlikning:* Paketera i 100 ms (10 Hz) vilket ger optimal balans mellan overhead och latens.
+- **Målkonflikt 1 (Hård spärr vs Sessionsavbrott):** Ett hårt stopp vid 9 000 minuter avbryter pågående sändning abrupt om gränsen nås mitt under ett event.
+  - *Förlikning:* De två förvarningarna vid 6 000 minuter (gul med möjlighet att stänga av tolkspår och därmed halvera förbrukningen) och 8 000 minuter (röd) ger arrangören god tid att agera. Bufferten på 1 000 minuter (10 %) till 10 000 garanterar nollkostnad.
+- **Målkonflikt 2 (Koppling till DOM/localStorage vs Ren TS-arkitektur):** `quotaService.ts` ska spara till localStorage men måste förbli en ren TypeScript-modul utan externa eller fasta DOM-beroenden.
+  - *Förlikning:* Injektera eller detektera en universell `StorageLike`-adapter. Om `window.localStorage` finns används den, annars faller tjänsten säkert tillbaka på intern minneslagring, vilket gör den fullständigt testbar i alla miljöer.
 
 MÄTTNAD: JA

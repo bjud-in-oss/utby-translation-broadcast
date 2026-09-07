@@ -1,6 +1,8 @@
 import { useLiveTranslation } from "../hooks/useLiveTranslation";
+import { useQuotaGuard } from "../hooks/useQuotaGuard";
 import { SupportedLanguage } from "../domain/types";
 import { ALL_LANGUAGES, LANGUAGE_REGIONS } from "../domain/languages";
+import { QuotaMeter } from "./QuotaMeter";
 
 export function LiveTranslationWidget() {
   const {
@@ -10,10 +12,17 @@ export function LiveTranslationWidget() {
   } = useLiveTranslation();
 
   const isLive = status === "active" || status === "rotating";
+
+  const quota = useQuotaGuard({
+    isLive,
+    onHardStop: stopTranslation,
+  });
+
   const handleToggle = () => {
     if (isLive) {
       stopTranslation();
     } else {
+      if (quota.isHardStopped) return;
       unlockAudioContext?.();
       void startTranslation();
     }
@@ -37,6 +46,17 @@ export function LiveTranslationWidget() {
         <div id="error-banner" className="mb-4 p-2.5 bg-rose-50/80 border border-rose-200 font-mono text-xs text-rose-800">{error}</div>
       )}
 
+      <div className="mb-6">
+        <QuotaMeter
+          usage={quota.usage}
+          quotaLevel={quota.quotaLevel}
+          isHardStopped={quota.isHardStopped}
+          interpreterTracksDisabled={quota.interpreterTracksDisabled}
+          onToggleInterpreterTracks={quota.toggleInterpreterTracks}
+          listenersCount={quota.listenersCount}
+        />
+      </div>
+
       <div className="space-y-6">
         <div>
           <label htmlFor="audio-device-select" className="block font-mono text-[0.7rem] uppercase tracking-widest text-stone-900/50 mb-1.5" style={{ fontFamily: "'Space Mono', monospace" }}>Ljudingång (mikrofon / NDI)</label>
@@ -52,7 +72,7 @@ export function LiveTranslationWidget() {
         <div>
           <label htmlFor="target-lang-select" className="block font-mono text-[0.7rem] uppercase tracking-widest text-stone-900/50 mb-1.5" style={{ fontFamily: "'Space Mono', monospace" }}>Målspråk</label>
           <select
-            id="target-lang-select" aria-label="Välj målspråk" value={targetLanguage} disabled={isLive}
+            id="target-lang-select" aria-label="Välj målspråk" value={targetLanguage} disabled={isLive || quota.interpreterTracksDisabled}
             onChange={(e) => setTargetLanguage(e.target.value as SupportedLanguage)}
             className="w-full bg-transparent border-0 border-b-2 border-stone-900 py-2 text-base text-stone-900 outline-none cursor-pointer focus:border-[#5e6ef2] disabled:opacity-40 transition-colors"
           >
@@ -64,6 +84,9 @@ export function LiveTranslationWidget() {
               </optgroup>
             ))}
           </select>
+          {quota.interpreterTracksDisabled && (
+            <p className="mt-1 font-mono text-[0.68rem] text-amber-800">Tolkspår är bortkopplat för att spara kvot. Enbart originalljud sänds.</p>
+          )}
         </div>
 
         <div>
@@ -79,11 +102,12 @@ export function LiveTranslationWidget() {
         <div className="flex gap-3 pt-2">
           <button
             id="toggle-translation-btn" type="button" onClick={handleToggle}
-            className={`flex-1 py-3.5 px-6 text-sm font-semibold tracking-wider transition-colors duration-200 cursor-pointer ${
+            disabled={quota.isHardStopped && !isLive}
+            className={`flex-1 py-3.5 px-6 text-sm font-semibold tracking-wider transition-colors duration-200 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
               isLive ? "bg-rose-700 hover:bg-rose-800 text-white" : "bg-[#1a1a1a] hover:bg-[#5e6ef2] text-[#f8f7f4]"
             }`}
           >
-            {isLive ? "Avsluta tolkning" : "Starta tolkning"}
+            {quota.isHardStopped && !isLive ? "Kvottaket nått (spärrad)" : isLive ? "Avsluta tolkning" : "Starta tolkning"}
           </button>
           <button
             id="panic-mute-btn" type="button" onClick={panicMute}
