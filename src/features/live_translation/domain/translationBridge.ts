@@ -56,9 +56,7 @@ export class TranslationBridge {
     this.isIntentionalDisconnect = false;
     if (!isRetry) this.reconnectAttempts = 0;
     this.callbacks.onStatusChange("connecting");
-    const wsUrl = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=${encodeURIComponent(
-      this.apiKey
-    )}`;
+    const wsUrl = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=${encodeURIComponent(this.apiKey)}`;
 
     try {
       this.ws = new WebSocket(wsUrl);
@@ -70,8 +68,7 @@ export class TranslationBridge {
 
   private handleConnectionFailure(errorMsg: string): void {
     if (!this.isIntentionalDisconnect && this.reconnectAttempts < 3) {
-      const delay = Math.min(4000, 1000 * Math.pow(2, this.reconnectAttempts));
-      this.reconnectAttempts++;
+      const delay = Math.min(4000, 1000 * Math.pow(2, this.reconnectAttempts++));
       this.callbacks.onStatusChange("connecting");
       this.reconnectTimer = setTimeout(() => {
         if (!this.isIntentionalDisconnect) this.connect(true);
@@ -85,7 +82,7 @@ export class TranslationBridge {
   private setupSocketHandlers(socket: WebSocket, isPrewarmed: boolean): void {
     socket.onopen = () => {
       const handle = this.hotSwapManager.getResumptionHandle();
-      const setupPayload = {
+      socket.send(JSON.stringify({
         setup: {
           model: "models/gemini-2.0-flash-exp",
           generationConfig: {
@@ -95,8 +92,7 @@ export class TranslationBridge {
           contextWindowCompressionConfig: { slidingWindow: {} },
           ...(handle ? { sessionResumption: { handle } } : {}),
         },
-      };
-      socket.send(JSON.stringify(setupPayload));
+      }));
       if (!isPrewarmed) {
         this.callbacks.onStatusChange("active");
         this.hotSwapManager.armTimer();
@@ -148,14 +144,11 @@ export class TranslationBridge {
     this.latencyHistory.push({ inputDuration: 100, responseDuration: chunkSize / 24 });
     if (this.latencyHistory.length > 20) this.latencyHistory.shift();
     this.adaptiveModel = calculateRegressionModel(this.latencyHistory);
-    const jitterFactor = Math.max(0.95, Math.min(1.05, 1.0 + (this.adaptiveModel.expansionRate - 1.2) * 0.05));
-    this.currentSlewRate = jitterFactor;
+    this.currentSlewRate = Math.max(0.95, Math.min(1.05, 1.0 + (this.adaptiveModel.expansionRate - 1.2) * 0.05));
   }
 
   public enqueueAudioSamples(samples: Int16Array): void {
-    for (let i = 0; i < samples.length; i++) {
-      this.sampleBuffer.push(samples[i]!);
-    }
+    for (let i = 0; i < samples.length; i++) this.sampleBuffer.push(samples[i]!);
     while (this.sampleBuffer.length >= this.FRAME_SAMPLES_100MS) {
       const chunk = new Int16Array(this.sampleBuffer.splice(0, this.FRAME_SAMPLES_100MS));
       this.sendAudioChunk(chunk);
@@ -188,8 +181,7 @@ export class TranslationBridge {
       const src = this.sfuAudioContext.createMediaStreamSource(stream);
       const proc = this.sfuAudioContext.createScriptProcessor(4096, 1, 1);
       proc.onaudioprocess = (e) => {
-        const input = e.inputBuffer.getChannelData(0);
-        const pcm16 = AudioResampler.downsample48kTo16k(input);
+        const pcm16 = AudioResampler.downsample48kTo16k(e.inputBuffer.getChannelData(0));
         this.enqueueAudioSamples(pcm16);
       };
       src.connect(proc);
@@ -201,9 +193,7 @@ export class TranslationBridge {
 
   private executeHotSwap(_handle: string | null): void {
     this.callbacks.onStatusChange("rotating");
-    const wsUrl = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=${encodeURIComponent(
-      this.apiKey
-    )}`;
+    const wsUrl = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=${encodeURIComponent(this.apiKey)}`;
     try {
       this.nextWs = new WebSocket(wsUrl);
       this.setupSocketHandlers(this.nextWs, true);
@@ -215,7 +205,8 @@ export class TranslationBridge {
         this.callbacks.onStatusChange("active");
         this.hotSwapManager.armTimer();
       }, { once: true });
-    } catch {
+    } catch (err) {
+      console.warn("[TranslationBridge] Hot Swap misslyckades:", err);
       this.callbacks.onStatusChange("active");
     }
   }
@@ -233,15 +224,19 @@ export class TranslationBridge {
       this.sfuAudioContext = null;
     }
     this.hotSwapManager.reset();
-    if (this.ws) {
-      this.ws.close();
-      this.ws = null;
-    }
-    if (this.nextWs) {
-      this.nextWs.close();
-      this.nextWs = null;
-    }
+    if (this.ws) { this.ws.close(); this.ws = null; }
+    if (this.nextWs) { this.nextWs.close(); this.nextWs = null; }
     this.sampleBuffer = [];
+    this.latencyHistory = [];
+    this.processorRef = null;
     this.callbacks.onStatusChange("idle");
+  }
+
+  public dispose(): void {
+    this.disconnect();
+  }
+
+  public destroy(): void {
+    this.disconnect();
   }
 }
