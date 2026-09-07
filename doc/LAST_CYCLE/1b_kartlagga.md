@@ -1,14 +1,14 @@
-# Steg 1b: Kartlägga (TCK-007)
+# Steg 1b: Kartlägga (TCK-008)
 
 ## Svar på GROW-frågor
-1. **Contract & Dynamic Protocol:** `LocalWebSocketAdapter` kontrollerar `window.location.protocol`. Vid `"https:"` används `wss://${window.location.host}/api/ws/audio`, annars `ws://`. Adaptern implementerar samtliga metoder i `AudioTransportAdapter` (`connect`, `disconnect`, `publishAudio`, `subscribeToTrack`, `getRemoteStream`, `getStatus`, `onStatusChange`).
-2. **State, Buffer & Backpressure:** För Zero-GC sätts `ws.binaryType = "arraybuffer"`. Vid sändning skickas 100 ms-ramar (1600 samples vid 16 kHz Int16), och om `ws.bufferedAmount > 128 * 1024` droppas ramen direkt. Inkommande binära PCM-paket tas emot och matas till `AudioProcessor.worklet.ts` (eller cirkulär ringbuffert med 300 ms målbuffert) för adaptiv WSOLA-slew.
-3. **Effects & Resilience:** `audioCtx.audioWorklet?.addModule` anropas för worklet-registrering med try/catch-skydd i icke-worklet/mockade miljöer. `useLocalWebSocket` tillhandahåller synkron `unlockAudio()` (AudioContext med tyst buffer) för iOS Safari.
+1. **Contract & Constraints:** I `src/features/live_translation/hooks/useLiveTranslation.ts` definieras `MediaTrackConstraints` med `sampleRate: { ideal: 16000 }` (eller att `sampleRate` helt utelämnas från `audioConstraints`). För `deviceId` används flexibel matchning eller att `exact` endast appliceras vid explicit icke-standard val, så att webbläsaren inte kastar `OverconstrainedError` om hårdvaran inte stödjer 48 kHz eller exakta frekvenser.
+2. **Effects & Resampling:** Web Audio API (`audioContext.createMediaStreamSource(stream)`) resamplar automatiskt från hårdvarans samplingsfrekvens till AudioContextens interna frekvens. Därefter hanterar `MicCapture.worklet.ts` (eller ljudpipelinen) paketering och nedskalning till 16 kHz PCM Int16 för vidare distribution till orchestrator och nätverksadaptrar.
+3. **Resilience & State:** Vid fångstfel (`OverconstrainedError`, `NotAllowedError`, m.fl.) fångas felet i hookens try/catch, sätter `status` till `"error"` och sparar ett beskrivande felmeddelande i `error`. Enhetstester i `useLiveTranslation.test.ts` uppdateras för att verifiera att flexibla constraints skickas till `getUserMedia` samt att fel hanteras korrekt.
 
 ```json
 {
   "active_vectors": [
-    "local_websocket_wsola"
+    "audio_constraints_resilience"
   ]
 }
 ```

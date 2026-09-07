@@ -137,10 +137,13 @@ export function useLiveTranslation() {
     try {
       const audioCtx = audioContextRef.current!;
       const audioConstraints: MediaTrackConstraints = {
-        echoCancellation: false, noiseSuppression: false, autoGainControl: false, sampleRate: 48000,
+        echoCancellation: false,
+        noiseSuppression: false,
+        autoGainControl: false,
+        sampleRate: { ideal: 16000 },
       };
       if (selectedDeviceId && selectedDeviceId !== "default") {
-        audioConstraints.deviceId = { exact: selectedDeviceId };
+        audioConstraints.deviceId = { ideal: selectedDeviceId };
       }
 
       const stream = await navigator.mediaDevices.getUserMedia({ audio: audioConstraints });

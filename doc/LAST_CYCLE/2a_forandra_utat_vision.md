@@ -1,5 +1,5 @@
-# Steg 2a: Förändra utåt - Vision (TCK-007)
+# Steg 2a: Förändra utåt - Vision (TCK-008)
 
 ## Målbild
-Skapa en robust TCP-baserad ljudtransportadapter (`LocalWebSocketAdapter`) för lokal distribution i begränsade nätverk (som kyrkor eller skolor) där UDP-portar blockeras av brandväggar.
-Adaptern implementerar `AudioTransportAdapter` och tillhandahåller adaptiv WSOLA-jitterbuffring (300 ms mål) samt Zero-GC binär överföring med backpressure-skydd. Hooken `useLocalWebSocket` ger ett reaktivt gränssnitt med iOS Safari-resiliens.
+Skapa en flexibel och hårdvaruoberoende ljudfångst i `useLiveTranslation` som eliminerar `OverconstrainedError` på alla typer av mikrofoner, ljudkort och webbläsare (Chrome, Safari, Firefox, Edge).
+Genom att använda rådgivande krav (`sampleRate: { ideal: 16000 }` alternativt ingen fast `sampleRate`-begränsning i MediaTrackConstraints) tillåts webbläsaren initiera mikrofonströmmen med mikrofonens nativa specifikation, medan Web Audio och AudioWorklet utför nödvändig samplings- och formatkonvertering.

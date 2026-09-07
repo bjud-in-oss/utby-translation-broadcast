@@ -1,0 +1,87 @@
+[1mdiff --git a/src/features/live_translation/hooks/__tests__/useLiveTranslation.test.ts b/src/features/live_translation/hooks/__tests__/useLiveTranslation.test.ts[m
+[1mindex 537a235..7fbc82b 100644[m
+[1m--- a/src/features/live_translation/hooks/__tests__/useLiveTranslation.test.ts[m
+[1m+++ b/src/features/live_translation/hooks/__tests__/useLiveTranslation.test.ts[m
+[36m@@ -107,17 +107,55 @@[m [mdescribe("useLiveTranslation Hook", () => {[m
+     expect(result.current.status).toBe("idle");[m
+   });[m
+ [m
+[31m-  it("startar tolkning med SFU-transport och laddar MicCapture worklet", async () => {[m
+[32m+[m[32m  it("startar tolkning med SFU-transport och laddar MicCapture worklet med flexibla constraints", async () => {[m
+     const { result } = renderHook(() => useLiveTranslation());[m
+     await act(async () => {[m
+       await result.current.startTranslation();[m
+     });[m
+[31m-    expect(navigator.mediaDevices.getUserMedia).toHaveBeenCalled();[m
+[32m+[m[32m    expect(navigator.mediaDevices.getUserMedia).toHaveBeenCalledWith({[m
+[32m+[m[32m      audio: {[m
+[32m+[m[32m        echoCancellation: false,[m
+[32m+[m[32m        noiseSuppression: false,[m
+[32m+[m[32m        autoGainControl: false,[m
+[32m+[m[32m        sampleRate: { ideal: 16000 },[m
+[32m+[m[32m      },[m
+[32m+[m[32m    });[m
+     act(() => { result.current.panicMute(); });[m
+     expect(result.current.status).toBe("idle");[m
+     expect(result.current.audioLevel).toBe(0);[m
+   });[m
+ [m
+[32m+[m[32m  it("anropar getUserMedia med flexibla enhetsconstraints vid vald mikrofon", async () => {[m
+[32m+[m[32m    const { result } = renderHook(() => useLiveTranslation());[m
+[32m+[m[32m    act(() => { result.current.setSelectedDeviceId("mic-2"); });[m
+[32m+[m[32m    await act(async () => {[m
+[32m+[m[32m      await result.current.startTranslation();[m
+[32m+[m[32m    });[m
+[32m+[m[32m    expect(navigator.mediaDevices.getUserMedia).toHaveBeenCalledWith({[m
+[32m+[m[32m      audio: {[m
+[32m+[m[32m        echoCancellation: false,[m
+[32m+[m[32m        noiseSuppression: false,[m
+[32m+[m[32m        autoGainControl: false,[m
+[32m+[m[32m        sampleRate: { ideal: 16000 },[m
+[32m+[m[32m        deviceId: { ideal: "mic-2" },[m
+[32m+[m[32m      },[m
+[32m+[m[32m    });[m
+[32m+[m[32m  });[m
+[32m+[m
+[32m+[m[32m  it("fångar och hanterar OverconstrainedError graciöst vid ljudfångst", async () => {[m
+[32m+[m[32m    const overconstrainedErr = new Error("Requested device constraints not available");[m
+[32m+[m[32m    overconstrainedErr.name = "OverconstrainedError";[m
+[32m+[m[32m    vi.mocked(navigator.mediaDevices.getUserMedia).mockRejectedValueOnce(overconstrainedErr);[m
+[32m+[m
+[32m+[m[32m    const { result } = renderHook(() => useLiveTranslation());[m
+[32m+[m[32m    await act(async () => {[m
+[32m+[m[32m      await result.current.startTranslation();[m
+[32m+[m[32m    });[m
+[32m+[m
+[32m+[m[32m    expect(result.current.status).toBe("error");[m
+[32m+[m[32m    expect(result.current.error).toBe("Requested device constraints not available");[m
+[32m+[m[32m  });[m
+[32m+[m
+   it("startar tolkning med local_ws och kopplar ner vid transportbyte och stopTranslation", async () => {[m
+     const { result } = renderHook(() => useLiveTranslation());[m
+     act(() => { result.current.setTransportMode("local_ws"); });[m
+[36m@@ -137,3 +175,4 @@[m [mdescribe("useLiveTranslation Hook", () => {[m
+     expect(result.current.status).toBe("idle");[m
+   });[m
+ });[m
+[41m+[m
+[1mdiff --git a/src/features/live_translation/hooks/useLiveTranslation.ts b/src/features/live_translation/hooks/useLiveTranslation.ts[m
+[1mindex b8c64ed..c0dfb22 100644[m
+[1m--- a/src/features/live_translation/hooks/useLiveTranslation.ts[m
+[1m+++ b/src/features/live_translation/hooks/useLiveTranslation.ts[m
+[36m@@ -137,10 +137,13 @@[m [mexport function useLiveTranslation() {[m
+     try {[m
+       const audioCtx = audioContextRef.current!;[m
+       const audioConstraints: MediaTrackConstraints = {[m
+[31m-        echoCancellation: false, noiseSuppression: false, autoGainControl: false, sampleRate: 48000,[m
+[32m+[m[32m        echoCancellation: false,[m
+[32m+[m[32m        noiseSuppression: false,[m
+[32m+[m[32m        autoGainControl: false,[m
+[32m+[m[32m        sampleRate: { ideal: 16000 },[m
+       };[m
+       if (selectedDeviceId && selectedDeviceId !== "default") {[m
+[31m-        audioConstraints.deviceId = { exact: selectedDeviceId };[m
+[32m+[m[32m        audioConstraints.deviceId = { ideal: selectedDeviceId };[m
+       }[m
+ [m
+       const stream = await navigator.mediaDevices.getUserMedia({ audio: audioConstraints });[m

@@ -1,19 +1,18 @@
-# Steg 4: Producera (TCK-007)
+# Steg 4: Producera (TCK-008)
 
 ## Genomförande
-Samtliga komponenter och integrationer för `LocalWebSocketAdapter`, `useLocalWebSocket` och transportväxling i `useLiveTranslation` har implementerats och säkrats enligt TDD-principen.
+`OverconstrainedError` vid ljudfångst i domänen `live_translation` har åtgärdats genom att mjuka upp kraven i anropet till `navigator.mediaDevices.getUserMedia`.
 
 ### Utförda ändringar
 1. **TDD Enhetstester:**
-   - `src/features/live_translation/domain/__tests__/localWebSocketAdapter.test.ts`: Validerar WebSocket-anslutning, dynamisk protokollväxling (wss/ws), arraybuffer, backpressure (>128 KB drop), PCM prenumeration och disconnect.
-   - `src/features/live_translation/hooks/__tests__/useLiveTranslation.test.ts`: Verifierar `transportMode` ('sfu' | 'local_ws', default 'sfu'), `setTransportMode`, laddning av `MicCapture.worklet.ts` via AudioWorklet samt nedkoppling vid `stopTranslation` och `panicMute`.
-   - `src/features/live_translation/hooks/__tests__/useLocalWebSocket.test.ts`: Testar hookens statusflöde, anslutning, publicering, prenumeration och automatisk disconnect vid unmount.
-
+   - `src/features/live_translation/hooks/__tests__/useLiveTranslation.test.ts`:
+     - Verifierar att `getUserMedia` anropas med `sampleRate: { ideal: 16000 }` istället för tvingande hårdvarufrekvenser.
+     - Verifierar att vald mikrofon skickas med flexibla constraints (`deviceId: { ideal: selectedDeviceId }`).
+     - Verifierar graciös hantering av `OverconstrainedError` där felet fångas och hookens status sätts till `error` med felbeskrivning.
 2. **Källkod:**
-   - `src/features/live_translation/domain/LocalWebSocketAdapter.ts`: Fullständig implementation av `AudioTransportAdapter` med Zero-GC binär transport, backpressure-skydd, WSOLA-buffring och aktiv felhantering.
-   - `src/features/live_translation/hooks/useLocalWebSocket.ts`: Hook för lokal WebSocket-transport med unmount-teardown och statuslyssnare.
-   - `src/features/live_translation/hooks/useLiveTranslation.ts`: Ersatt ScriptProcessorNode helt med `MicCapture.worklet.ts`, tillagt `transportMode` ('sfu' | 'local_ws'), integrerat både `CloudflareSFUAdapter` och `LocalWebSocketAdapter` i `startTranslation`/`stopTranslation` samt clean disconnect vid byte, stopp och panik-tystning.
-   - `src/features/live_translation/index.ts`: Exponerar `LocalWebSocketAdapter` och `useLocalWebSocket`.
+   - `src/features/live_translation/hooks/useLiveTranslation.ts`:
+     - Ändrat `sampleRate` i `audioConstraints` från fast `48000` till `{ ideal: 16000 }`.
+     - Ändrat `deviceId` från `{ exact: selectedDeviceId }` till `{ ideal: selectedDeviceId }` för att undvika OverconstrainedError på mikrofoner/ljudkort.
 
 ## Verifiering
-Samtliga linjekvoter (<250 rader per fil), typkrav (inga any), aktiv felhantering (inga tomma catch) och TDD-ordning uppfylls.
+Samtliga tester i `useLiveTranslation.test.ts` passerar utan anmärkningar. Linjekvoter (<250 rader per fil), typkrav (inga any) och TDD-ordning uppfylls.

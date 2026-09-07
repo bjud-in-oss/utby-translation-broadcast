@@ -107,15 +107,53 @@ describe("useLiveTranslation Hook", () => {
     expect(result.current.status).toBe("idle");
   });
 
-  it("startar tolkning med SFU-transport och laddar MicCapture worklet", async () => {
+  it("startar tolkning med SFU-transport och laddar MicCapture worklet med flexibla constraints", async () => {
     const { result } = renderHook(() => useLiveTranslation());
     await act(async () => {
       await result.current.startTranslation();
     });
-    expect(navigator.mediaDevices.getUserMedia).toHaveBeenCalled();
+    expect(navigator.mediaDevices.getUserMedia).toHaveBeenCalledWith({
+      audio: {
+        echoCancellation: false,
+        noiseSuppression: false,
+        autoGainControl: false,
+        sampleRate: { ideal: 16000 },
+      },
+    });
     act(() => { result.current.panicMute(); });
     expect(result.current.status).toBe("idle");
     expect(result.current.audioLevel).toBe(0);
+  });
+
+  it("anropar getUserMedia med flexibla enhetsconstraints vid vald mikrofon", async () => {
+    const { result } = renderHook(() => useLiveTranslation());
+    act(() => { result.current.setSelectedDeviceId("mic-2"); });
+    await act(async () => {
+      await result.current.startTranslation();
+    });
+    expect(navigator.mediaDevices.getUserMedia).toHaveBeenCalledWith({
+      audio: {
+        echoCancellation: false,
+        noiseSuppression: false,
+        autoGainControl: false,
+        sampleRate: { ideal: 16000 },
+        deviceId: { ideal: "mic-2" },
+      },
+    });
+  });
+
+  it("fångar och hanterar OverconstrainedError graciöst vid ljudfångst", async () => {
+    const overconstrainedErr = new Error("Requested device constraints not available");
+    overconstrainedErr.name = "OverconstrainedError";
+    vi.mocked(navigator.mediaDevices.getUserMedia).mockRejectedValueOnce(overconstrainedErr);
+
+    const { result } = renderHook(() => useLiveTranslation());
+    await act(async () => {
+      await result.current.startTranslation();
+    });
+
+    expect(result.current.status).toBe("error");
+    expect(result.current.error).toBe("Requested device constraints not available");
   });
 
   it("startar tolkning med local_ws och kopplar ner vid transportbyte och stopTranslation", async () => {
@@ -137,3 +175,4 @@ describe("useLiveTranslation Hook", () => {
     expect(result.current.status).toBe("idle");
   });
 });
+

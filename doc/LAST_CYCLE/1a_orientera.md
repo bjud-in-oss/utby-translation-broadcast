@@ -1,9 +1,9 @@
-# Steg 1a: Orientera (TCK-007)
+# Steg 1a: Orientera (TCK-008)
 
 ## Mål
-Implementera `LocalWebSocketAdapter` och `useLocalWebSocket` enligt `doc/skills/local-websocket-wsola-bridge.md`. Adaptern ska implementera `AudioTransportAdapter` för lokal ljudströmning över TCP/WebSocket i nätverksmiljöer med spärrade UDP-portar (kyrkor, skolor, offentliga nät).
+Åtgärda `OverconstrainedError` vid ljudfångst i domänen `live_translation` genom att mjuka upp hårt ställda krav i anropet till `navigator.mediaDevices.getUserMedia` i `src/features/live_translation/hooks/useLiveTranslation.ts`. Strikta hårdvarukrav på samplingsfrekvens ersätts med flexibla krav (`sampleRate: { ideal: 16000 }` eller avlägsnas ur constraints), medan WebAudio och AudioWorklet hanterar intern resampling.
 
 ## GROW-frågor mot ändringens faktiska risknoder
-1. **Contract & Dynamic Protocol (Protokollväxling och transportkontrakt):** Hur ska `LocalWebSocketAdapter` dynamiskt switcha mellan `wss://` vid HTTPS och `ws://` vid HTTP när ingen explicit `serverUrl` anges, och hur säkerställs att `AudioTransportAdapter`-kontraktet uppfylls utan avvikelser i metodsignaturer?
-2. **State, Buffer & Backpressure (Zero-GC och TCP-resiliens):** Hur hanteras mikropauser och TCP-backpressure så att 100 ms-ramar kasseras om `ws.bufferedAmount > 128 KB`, och hur matas inkommande PCM-paket via `AudioProcessor.worklet.ts` för adaptiv 300 ms WSOLA-slew utan onödiga minnesallokeringar?
-3. **Effects & Resilience (AudioWorklet-laddning och AudioContext-upplåsning):** Hur ska `MicCapture.worklet.ts` och `AudioProcessor.worklet.ts` laddas säkert via `audioCtx.audioWorklet.addModule` med graciös fallback i testmiljöer, och hur orkestrerar `useLocalWebSocket` synkron iOS Safari audio-upplåsning vid användarinteraktion?
+1. **Contract & Constraints (MediaTrackConstraints och ljudfångstkontrakt):** Hur ska parametrarna i `navigator.mediaDevices.getUserMedia` utformas så att strikta hårdvarukrav (t.ex. fasta sample rates eller `exact`) ersätts med flexibla preferenser (`sampleRate: { ideal: 16000 }` eller utelämnad `sampleRate`), och hur säkerställs att enhetsval via `deviceId` sker utan att utlösa `OverconstrainedError` på enheter med begränsat hårdvarustöd?
+2. **Effects & Resampling (AudioContext & Worklet-bearbetning):** Hur interagerar den erhållna ljudströmmen från `getUserMedia` med `AudioContext` och `MicCapture.worklet.ts` när hårdvaran levererar godtycklig nativ samplingsfrekvens (t.ex. 44.1 kHz, 48 kHz eller 96 kHz), och hur garanteras att resampling och 100 ms ramindelning sker stabilt utan latency-ackumulering?
+3. **Resilience & State (Felhantering och testbarhet):** Hur säkerställs att `useLiveTranslation` och tillhörande enhetstester i `useLiveTranslation.test.ts` validerar de mjukare kraven samt graciöst hanterar eventuella nekade behörigheter eller hårdvarufel med korrekt uppdatering av hookens fel- och statusläge (`status: "error"`, `error: string`)?
