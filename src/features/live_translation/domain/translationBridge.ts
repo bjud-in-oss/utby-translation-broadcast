@@ -84,7 +84,7 @@ export class TranslationBridge {
       const handle = this.hotSwapManager.getResumptionHandle();
       socket.send(JSON.stringify({
         setup: {
-          model: "models/gemini-2.0-flash-exp",
+          model: "models/gemini-3.5-live-translate-preview",
           generationConfig: {
             responseModalities: ["AUDIO"],
             translationConfig: { targetLanguageCode: this.targetLanguage, echoTargetLanguage: false },

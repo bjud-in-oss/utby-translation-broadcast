@@ -17,7 +17,7 @@ export function useLiveTranslation() {
     { deviceId: "default", label: "Standardmikrofon" },
   ]);
   const [selectedDeviceId, setSelectedDeviceId] = useState<string>("default");
-  const [transportMode, setTransportModeState] = useState<TransportMode>("sfu");
+  const [transportMode, setTransportModeState] = useState<TransportMode>("local_ws");
 
   const orchestratorRef = useRef<MultiBridgeOrchestrator | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
