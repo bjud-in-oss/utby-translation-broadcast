@@ -1,0 +1,1 @@
+{"name":"bjud-in-oss/utby-translation-broadcast","description":"Realtids simultantolkning med Gemini Live och Cloudflare Calls SFU","requestFramePermissions":["microphone"],"majorCapabilities":["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]}
