@@ -17,7 +17,7 @@ Använd uteslutande följande modellnamn:
 * **Officiellt ID:** `gemini-3.5-live-translate-preview`
 * **Rå WebSocket-sökväg:** `models/gemini-3.5-live-translate-preview`
 
-> **FÖRBUD:** Gissa ALDRIG på `gemini-2.0-flash-exp`, `gemini-2.5-flash` eller liknande. De stöder inte `translationConfig`.
+> Andra modeller stöder inte `translationConfig`.
 
 ---
 
