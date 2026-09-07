@@ -1,6 +1,5 @@
-# Steg 2b: Evaluera yttre anpassning (TCK-022)
+# Steg 2b: Evaluera yttre anpassning (TCK-003)
 
-## 1. Utvärdering mot användarbehov och live-sändningskrav
-- Synkron upplåsning av `AudioContext` tillgodoser WebKit / Safari specifikationskrav för användarinitierade gester.
-- Exponential backoff (1s, 2s, 4s) följer standardiserade nätverksresiliensmönster för WebRTC och WebSockets.
-- Tidig uppstartskontroll ger proaktiv och transparent återkoppling utan störande modalrutor.
+- **Gemini API Live 2.0 / 3.1 BidiGenerateContent:** Kontraktet uppfyller specifikationen med 16 kHz mono Int16 in, 24 kHz Int16 ut, slidingWindow och sessionResumption.
+- **Cloudflare Calls SFU:** WebRTC AudioTrack publiceras och prenumereras med proxy-routing utan att exponera hemligheter.
+- **Web Audio:** iOS Safari låses upp synkront vid klick och unmount städar resurser automatiskt.

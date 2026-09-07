@@ -1,3 +1,4 @@
-# Godkännande av Steg 3c
+# Godkännande för Fas 2 (Steg 4 TDD)
 
-TOKEN-TCK-022-RESILIENCE-7E3D81FA
+Token: `TOKEN-TCK003-BRIDGE-9871`
+Godkänd av användare för implementation av TCK-003.

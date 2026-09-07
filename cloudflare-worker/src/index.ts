@@ -62,15 +62,20 @@ export default {
     // 1. Skapa en ny WebRTC-session
     // POST /api/sfu/session/new
     if (url.pathname === '/api/sfu/session/new') {
+      let body: {
+        sessionDescription?: { type: string; sdp: string };
+      };
       try {
-        const body = await request.json() as {
-          sessionDescription?: { type: string; sdp: string };
-        };
+        body = await request.json();
+      } catch {
+        return jsonResponse({ error: 'Ogiltig JSON i begäran' }, 400);
+      }
 
-        if (!body || !body.sessionDescription) {
-          return jsonResponse({ error: 'sessionDescription krävs' }, 400);
-        }
+      if (!body || !body.sessionDescription) {
+        return jsonResponse({ error: 'sessionDescription krävs' }, 400);
+      }
 
+      try {
         const cfUrl = `${CLOUDFLARE_CALLS_BASE_URL}/apps/${appId}/sessions/new`;
         const cfResponse = await fetch(cfUrl, {
           method: 'POST',
@@ -94,27 +99,32 @@ export default {
     // 2. Lägg till lokala eller fjärranslutna ljudspår
     // POST /api/sfu/tracks/new
     if (url.pathname === '/api/sfu/tracks/new') {
+      let body: {
+        sessionId?: string;
+        sessionDescription?: { type: string; sdp: string };
+        tracks?: Array<unknown>;
+      };
       try {
-        const body = await request.json() as {
-          sessionId?: string;
-          sessionDescription?: { type: string; sdp: string };
-          tracks?: Array<unknown>;
-        };
+        body = await request.json();
+      } catch {
+        return jsonResponse({ error: 'Ogiltig JSON i begäran' }, 400);
+      }
 
-        const sessionId = body?.sessionId || url.searchParams.get('sessionId');
+      const sessionId = body?.sessionId || url.searchParams.get('sessionId');
 
-        if (!sessionId) {
-          return jsonResponse({ error: 'sessionId krävs i request body eller query parameter' }, 400);
-        }
+      if (!sessionId) {
+        return jsonResponse({ error: 'sessionId krävs i request body eller query parameter' }, 400);
+      }
 
-        if (!body || !body.sessionDescription) {
-          return jsonResponse({ error: 'sessionDescription krävs' }, 400);
-        }
+      if (!body || !body.sessionDescription) {
+        return jsonResponse({ error: 'sessionDescription krävs' }, 400);
+      }
 
-        if (!body.tracks || !Array.isArray(body.tracks) || body.tracks.length === 0) {
-          return jsonResponse({ error: 'tracks array krävs och får inte vara tom' }, 400);
-        }
+      if (!body.tracks || !Array.isArray(body.tracks) || body.tracks.length === 0) {
+        return jsonResponse({ error: 'tracks array krävs och får inte vara tom' }, 400);
+      }
 
+      try {
         const cfUrl = `${CLOUDFLARE_CALLS_BASE_URL}/apps/${appId}/sessions/${sessionId}/tracks/new`;
         const cfResponse = await fetch(cfUrl, {
           method: 'POST',

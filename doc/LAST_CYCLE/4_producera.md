@@ -1,17 +1,17 @@
-# Steg 4: Producera (TCK-022: iOS WebAudio unlock, WebSocket retry backoff och credential-varning)
+# Steg 4: Producera (TCK-003)
 
-## 1. Genomförda källkodsändringar
-- `src/features/live_translation/domain/translationBridge.ts`: Implementerat automatisk återanslutning vid oväntat anslutningstapp (t.ex. vid konferens-Wi-Fi dippar) med exponential backoff (1s, 2s, 4s upp till 3 försök) innan fel emitteras.
-- `src/features/live_translation/domain/__tests__/translationBridge.test.ts`: Skapat TDD-enhetstester som simulerar oväntat nätverksbortfall och verifierar återanslutningscykeln samt att avsiktlig frånkoppling respekteras.
-- `src/features/live_translation/hooks/useLiveTranslation.ts`:
-  - Lagt till `unlockAudioContext()` som synkront resume:ar `AudioContext` vid användargest (klick), vilket låser upp ljuduppspelning på iOS Safari innan asynkrona anrop görs.
-  - Lagt till proaktiv kontroll av `LIVEKIT_URL`, `LIVEKIT_API_KEY` och `GEMINI_API_KEY` vid komponentmontering.
-- `src/features/live_translation/components/LiveTranslationWidget.tsx`:
-  - Anropar synkront `unlockAudioContext()` direkt i klickhanteraren före start.
-  - Renderar ett diskret, monospacat varningsfält om miljövariabler saknas i `.env.local`.
-  - Håller komponenten strikt under 120 rader (100 rader) med endast 1 hook.
-- `src/features/live_translation/components/__tests__/LiveTranslationWidget.test.tsx`: Uppdaterat UI-testerna för att testa varningen och den uppdaterade klickhanteraren.
-- `src/features/live_translation/doc/BUSINESS_RULES.md` & `INTEGRATIONS.md`: Uppdaterat dokumentationen med reglerna för återanslutning och behörighetsvarning.
-
-## 2. Testning
-Samtliga enhetstester körda med Vitest utan fel.
+## Genomförd implementation
+1. **Cloudflare Worker & SFU Hook:**
+   - Uppdaterade `useCloudflareSFU.ts` till att gå mot `/api/sfu/session/new` och `/api/sfu/tracks/new`.
+   - Lade till automatisk unmount-städning med `useEffect` som anropar `disconnect()`.
+   - Implementerade synkron `unlockAudio()` som körs i användarens klick-stack före await.
+   - Lade till try-catch med 400 Bad Request vid felaktig JSON i `cloudflare-worker/src/index.ts`.
+2. **TranslationBridge & Gemini Live:**
+   - Kopplade ljudflödet från SFU mot Gemini Live WebSocket (`BidiGenerateContent`).
+   - Importerade och integrerade `AudioProcessor.worklet.ts` och `adaptiveLogic.ts` för adaptiv slew (+/- 3–5 %) och ringbuffert mot jitter.
+   - Säkerställde 100 ms-paketering (10 Hz frekvens, 1600 samplar vid 16 kHz) med strikt clamping `Math.max(-1, Math.min(1, sample))`.
+   - Implementerade backpressure-kontroll mot `ws.bufferedAmount` (128 KB tröskel).
+   - Aktiverade Hot Swap-resiliens med `slidingWindow`, `newHandle` från `sessionResumptionUpdate` och `goAway.timeLeft`.
+3. **TDD & Typsäkerhet:**
+   - Skapade och verifierade enhetstester i `translationBridge.test.ts` och `useCloudflareSFU.test.ts` före källkod.
+   - Eliminerade alla `any`-typer och säkerställde att alla filer håller sig under 250 rader och kompilerar felfritt med strikt TypeScript.

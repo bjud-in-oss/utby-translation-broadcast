@@ -1,6 +1,5 @@
-# Steg 3a: Helhet, orkestrering och integration (TCK-022)
+# Steg 3a: Helhet, orkestrering och integration (TCK-003)
 
-## 1. Integrationsarkitektur
-- `TranslationBridge`: Hanterar `reconnectAttempts` med exponential backoff på WebSocket-nivå.
-- `useLiveTranslation`: Initierar och resume:ar `AudioContext` synkront vid startklick, samt kontrollerar `LIVEKIT_URL` / `LIVEKIT_API_KEY` / `GEMINI_API_KEY` vid montering.
-- `LiveTranslationWidget`: Visar `configWarning` om nycklar saknas och anropar `startTranslation` direkt i klickhanteraren.
+- WebRTC/SFU Stream -> AudioResampler (downsample48kTo16k / clamping) -> 100 ms ramar -> TranslationBridge -> Gemini Live WebSocket.
+- Gemini Live WebSocket -> 24 kHz Int16 -> AudioProcessor / Adaptive Slew -> Web Audio Destination.
+- Cloudflare Calls REST API via /api/sfu/* proxy endpoints.

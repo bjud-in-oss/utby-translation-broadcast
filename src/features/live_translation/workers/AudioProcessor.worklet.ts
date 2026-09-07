@@ -10,10 +10,10 @@ interface AudioWorkletProcessor {
 
 declare var AudioWorkletProcessor: {
   prototype: AudioWorkletProcessor;
-  new (options?: any): AudioWorkletProcessor;
+  new (options?: unknown): AudioWorkletProcessor;
 };
 
-declare var registerProcessor: (name: string, processorCtor: (new (options?: any) => AudioWorkletProcessor)) => void;
+declare var registerProcessor: (name: string, processorCtor: (new (options?: unknown) => AudioWorkletProcessor)) => void;
 
 class AudioProcessor extends AudioWorkletProcessor {
   // Shared Memory Buffers
@@ -203,4 +203,8 @@ class AudioProcessor extends AudioWorkletProcessor {
   }
 }
 
-registerProcessor('audio-processor', AudioProcessor);
+if (typeof registerProcessor !== 'undefined') {
+  registerProcessor('audio-processor', AudioProcessor);
+}
+
+export { AudioProcessor };

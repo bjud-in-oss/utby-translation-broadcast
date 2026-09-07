@@ -1,9 +1,9 @@
-# Steg 2e: Försoning och förlikning (TCK-022)
+# Steg 2e: Försoning och förlikning (TCK-003)
 
 ## 1. Målkonflikter och förlikningsbeslut
-- **Målkonflikt 1 (Återanslutningsfördröjning vs Användaråterkoppling):** Under ett återanslutningsförsök kan användaren bli osäker på om sessionen lever.
-  - *Förlikning:* Sätt statusen till `connecting` eller logga reconnect under pågående försök; endast efter 3 förbrukade försök ändras statusen till `error`.
-- **Målkonflikt 2 (Miljövariabelkontroll utan hård blockering i dev):** I en lokal utvecklingsmiljö eller preview kan användaren vilja testa gränssnittet även utan aktiva nycklar.
-  - *Förlikning:* Visa en diskret varningsbanderoll utan att inaktivera knappar, så att gränssnittet och mockade flöden fortfarande kan utvärderas.
+- **Målkonflikt 1 (Jitter vs Latens):** En stor ringbuffert förhindrar jitter men ökar tidsfördröjningen i tolkningen.
+  - *Förlikning:* Använd dynamisk slew (+/- 3–5 %) för att hålla bufferten kring 300 ms utan att introducera hörbara tonhöjdsartefakter.
+- **Målkonflikt 2 (Paketeringsstorlek vs Nätverksoverhead):** 20 ms ramar ger låg latens men 50 Hz meddelandefrekvens belastar WebSocket och klient.
+  - *Förlikning:* Paketera i 100 ms (10 Hz) vilket ger optimal balans mellan overhead och latens.
 
 MÄTTNAD: JA

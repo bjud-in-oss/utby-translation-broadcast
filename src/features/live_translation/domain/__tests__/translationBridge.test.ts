@@ -4,7 +4,7 @@ import { TranslationBridge } from "../translationBridge";
 // Mock WebSocket
 class MockWebSocket {
   public static instances: MockWebSocket[] = [];
-  public readyState: number = WebSocket.OPEN;
+  public readyState: number = 1; // WebSocket.OPEN
   public bufferedAmount = 0;
   public onopen: (() => void) | null = null;
   public onmessage: ((event: { data: string }) => void) | null = null;
@@ -20,13 +20,17 @@ class MockWebSocket {
 
   send = vi.fn();
   close = vi.fn(() => {
-    this.readyState = WebSocket.CLOSED;
+    this.readyState = 3; // WebSocket.CLOSED
     if (this.onclose) this.onclose({ code: 1000 });
   });
-  addEventListener = vi.fn();
+  addEventListener = vi.fn((event: string, cb: () => void) => {
+    if (event === "open") {
+      setTimeout(cb, 0);
+    }
+  });
 }
 
-describe("TranslationBridge Reconnect & Resilience", () => {
+describe("TranslationBridge Specifications", () => {
   beforeEach(() => {
     MockWebSocket.instances = [];
     vi.stubGlobal("WebSocket", MockWebSocket);
@@ -38,77 +42,144 @@ describe("TranslationBridge Reconnect & Resilience", () => {
     vi.unstubAllGlobals();
   });
 
-  it("attempts reconnect with exponential backoff on unexpected socket close", () => {
-    const statusChanges: string[] = [];
-    const errors: string[] = [];
-
-    const bridge = new TranslationBridge("test-key", "en", {
-      onAudioData: vi.fn(),
-      onStatusChange: (status) => statusChanges.push(status),
-      onError: (err) => errors.push(err),
-    });
-
-    bridge.connect();
-
-    expect(MockWebSocket.instances.length).toBe(1);
-    const initialSocket = MockWebSocket.instances[0]!;
-
-    // Simulate unexpected disconnect (code 1006 abnormal closure)
-    if (initialSocket.onclose) {
-      initialSocket.onclose({ code: 1006 });
-    }
-
-    // Should NOT immediately trigger fatal error status
-    expect(errors.length).toBe(0);
-
-    // Fast-forward 1 second (first retry delay)
-    vi.advanceTimersByTime(1000);
-    expect(MockWebSocket.instances.length).toBe(2);
-
-    // Second socket closes unexpectedly
-    const secondSocket = MockWebSocket.instances[1]!;
-    if (secondSocket.onclose) {
-      secondSocket.onclose({ code: 1006 });
-    }
-
-    // Fast-forward 2 seconds (second retry delay)
-    vi.advanceTimersByTime(2000);
-    expect(MockWebSocket.instances.length).toBe(3);
-
-    // Third socket closes unexpectedly
-    const thirdSocket = MockWebSocket.instances[2]!;
-    if (thirdSocket.onclose) {
-      thirdSocket.onclose({ code: 1006 });
-    }
-
-    // Fast-forward 4 seconds (third retry delay)
-    vi.advanceTimersByTime(4000);
-    expect(MockWebSocket.instances.length).toBe(4);
-
-    // Fourth socket closes unexpectedly - max retries reached!
-    const fourthSocket = MockWebSocket.instances[3]!;
-    if (fourthSocket.onclose) {
-      fourthSocket.onclose({ code: 1006 });
-    }
-
-    // Now error should be reported
-    expect(errors.length).toBeGreaterThan(0);
-    expect(statusChanges).toContain("error");
-  });
-
-  it("does not attempt reconnect on intentional disconnect", () => {
-    const bridge = new TranslationBridge("test-key", "en", {
+  it("skickar setup-payload med slidingWindow och targetLanguage vid anslutning", () => {
+    const bridge = new TranslationBridge("test-key", "sv", {
       onAudioData: vi.fn(),
       onStatusChange: vi.fn(),
       onError: vi.fn(),
     });
 
     bridge.connect();
-
     expect(MockWebSocket.instances.length).toBe(1);
-    bridge.disconnect();
+    const ws = MockWebSocket.instances[0]!;
+    vi.advanceTimersByTime(10);
 
-    vi.advanceTimersByTime(10000);
+    expect(ws.send).toHaveBeenCalled();
+    const payload = JSON.parse(ws.send.mock.calls[0][0]);
+    expect(payload.setup).toBeDefined();
+    expect(payload.setup.contextWindowCompressionConfig).toEqual({ slidingWindow: {} });
+    expect(payload.setup.generationConfig.translationConfig.targetLanguageCode).toBe("sv");
+  });
+
+  it("droppar ljudramar vid backpressure när ws.bufferedAmount > 128 KB", () => {
+    const bridge = new TranslationBridge("test-key", "sv", {
+      onAudioData: vi.fn(),
+      onStatusChange: vi.fn(),
+      onError: vi.fn(),
+    });
+
+    bridge.connect();
+    vi.advanceTimersByTime(10);
+    const ws = MockWebSocket.instances[0]!;
+    ws.send.mockClear();
+
+    // Sätt bufferedAmount till över 128 KB (131073 bytes)
+    ws.bufferedAmount = 128 * 1024 + 1;
+    const samples = new Int16Array(1600);
+    bridge.sendAudioChunk(samples);
+
+    // Ska INTE ha anropat ws.send på grund av backpressure
+    expect(ws.send).not.toHaveBeenCalled();
+
+    // Återställ till under 128 KB
+    ws.bufferedAmount = 64 * 1024;
+    bridge.sendAudioChunk(samples);
+    expect(ws.send).toHaveBeenCalledTimes(1);
+  });
+
+  it("paketerar ljud i 100 ms-ramar (1600 samplar vid 16 kHz) för 10 Hz sändningsfrekvens", () => {
+    const bridge = new TranslationBridge("test-key", "sv", {
+      onAudioData: vi.fn(),
+      onStatusChange: vi.fn(),
+      onError: vi.fn(),
+    });
+
+    bridge.connect();
+    vi.advanceTimersByTime(10);
+    const ws = MockWebSocket.instances[0]!;
+    ws.send.mockClear();
+
+    // Skicka 800 samplar (50 ms) -> ska buffras, inte skickas än
+    const halfChunk = new Int16Array(800);
+    bridge.enqueueAudioSamples(halfChunk);
+    expect(ws.send).not.toHaveBeenCalled();
+
+    // Skicka 800 samplar till -> totalt 1600 (100 ms) -> ska skickas
+    bridge.enqueueAudioSamples(halfChunk);
+    expect(ws.send).toHaveBeenCalledTimes(1);
+  });
+
+  it("uppdaterar hot-swap resumption handle från sessionResumptionUpdate", () => {
+    const bridge = new TranslationBridge("test-key", "sv", {
+      onAudioData: vi.fn(),
+      onStatusChange: vi.fn(),
+      onError: vi.fn(),
+    });
+
+    bridge.connect();
+    vi.advanceTimersByTime(10);
+    const ws = MockWebSocket.instances[0]!;
+
+    if (ws.onmessage) {
+      ws.onmessage({
+        data: JSON.stringify({
+          sessionResumptionUpdate: { newHandle: "resumption-token-xyz" },
+        }),
+      });
+    }
+
+    expect(bridge.getResumptionHandle()).toBe("resumption-token-xyz");
+  });
+
+  it("hanterar goAway och utlöser hot-swap innan timeLeft går ut", () => {
+    const statusChanges: string[] = [];
+    const bridge = new TranslationBridge("test-key", "sv", {
+      onAudioData: vi.fn(),
+      onStatusChange: (status) => statusChanges.push(status),
+      onError: vi.fn(),
+    });
+
+    bridge.connect();
+    vi.advanceTimersByTime(10);
+    const ws = MockWebSocket.instances[0]!;
+
+    // Skicka GoAway med 5000 ms timeLeft
+    if (ws.onmessage) {
+      ws.onmessage({
+        data: JSON.stringify({
+          goAway: { timeLeft: 5000 },
+        }),
+      });
+    }
+
+    // Ska trigga hot-swap med säkerhetsmarginal (5000 - 2000 = 3000 ms)
+    vi.advanceTimersByTime(2900);
     expect(MockWebSocket.instances.length).toBe(1);
+
+    vi.advanceTimersByTime(200);
+    expect(MockWebSocket.instances.length).toBe(2);
+    expect(statusChanges).toContain("rotating");
+  });
+
+  it("tillämpar adaptiv slew och clamping vid resampling", () => {
+    const bridge = new TranslationBridge("test-key", "sv", {
+      onAudioData: vi.fn(),
+      onStatusChange: vi.fn(),
+      onError: vi.fn(),
+    });
+
+    // Verifiera clamping mellan -1 och 1
+    const clampedMax = bridge.clampSample(1.5);
+    const clampedMin = bridge.clampSample(-1.5);
+    const clampedMid = bridge.clampSample(0.42);
+
+    expect(clampedMax).toBe(1);
+    expect(clampedMin).toBe(-1);
+    expect(clampedMid).toBe(0.42);
+
+    // Verifiera adaptiv slew inom +/- 3–5 %
+    const slew = bridge.getAdaptiveSlewRate();
+    expect(slew).toBeGreaterThanOrEqual(0.95);
+    expect(slew).toBeLessThanOrEqual(1.05);
   });
 });

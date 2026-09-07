@@ -1,12 +1,7 @@
-# Steg 3b: Domänkontrakt och fraktal dokumentation (TCK-022)
+# Steg 3b: Domän, kontrakt och fraktal dokumentation (TCK-003)
 
-## 1. Domänkontrakt
-- `TranslationBridge`:
-  - `public connect(): Promise<void>`
-  - Intern metod: `private attemptReconnect(): void`
-  - Max försök: 3. Backoff-sekvens: 1000ms, 2000ms, 4000ms.
-- `useLiveTranslation`:
-  - Returobjekt utökas med `configWarning: string | null`.
-
-## 2. Lokala dokumentationsfiler
-- Uppdatera `src/features/live_translation/doc/BUSINESS_RULES.md`, `INTEGRATIONS.md` och `UI_WORKFLOWS.md`.
+- Domän: `live_translation`
+- Kontrakt:
+  - `TranslationBridge`: Ansluter WebSocket, hanterar BidiGenerateContent, 100 ms paketering, GoAway.timeLeft och hot swap.
+  - `useCloudflareSFU`: WebRTC-koppling mot Worker-proxy, unmount-städning, synkron audio unlock.
+  - `AudioProcessor.worklet`: Ringbuffert och elastic playback.

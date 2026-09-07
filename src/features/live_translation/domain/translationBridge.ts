@@ -1,6 +1,13 @@
 import { AudioResampler } from "./audioResampler";
 import { HotSwapManager } from "./hotSwapManager";
 import { SupportedLanguage } from "./types";
+import { AudioProcessor } from "../workers/AudioProcessor.worklet";
+import {
+  calculateRegressionModel,
+  SAFE_MODE_MODEL,
+  PredictionModel,
+  DataPoint,
+} from "./adaptiveLogic";
 
 export interface BridgeCallbacks {
   onAudioData: (samples: Int16Array) => void;
@@ -8,36 +15,46 @@ export interface BridgeCallbacks {
   onError: (error: string) => void;
 }
 
-/**
- * TranslationBridge
- * Huvudorkestrering av WebSocket-anslutning mot Gemini Live Translate API
- * med payload-isolering, frame pacing och proaktiv hot-swap.
- */
 export class TranslationBridge {
   private ws: WebSocket | null = null;
   private nextWs: WebSocket | null = null;
   private hotSwapManager: HotSwapManager;
-  private readonly MAX_BUFFERED_BYTES = 128 * 1024; // 128 KB backpressure-tröskel
+  private readonly MAX_BUFFERED_BYTES = 128 * 1024; // 128 KB backpressure
+  private readonly FRAME_SAMPLES_100MS = 1600; // 100 ms vid 16 kHz (10 Hz)
+  private sampleBuffer: number[] = [];
   private reconnectAttempts = 0;
-  private readonly MAX_RECONNECT_ATTEMPTS = 3;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  private goAwayTimer: ReturnType<typeof setTimeout> | null = null;
   private isIntentionalDisconnect = false;
+  private sfuAudioContext: AudioContext | null = null;
+  private adaptiveModel: PredictionModel = SAFE_MODE_MODEL;
+  private latencyHistory: DataPoint[] = [];
+  private currentSlewRate = 1.0; // 0.95 till 1.05 (+/- 3-5 %)
+  public processorRef: AudioProcessor | null = null;
 
   constructor(
     private readonly apiKey: string,
     private targetLanguage: SupportedLanguage,
     private readonly callbacks: BridgeCallbacks
   ) {
-    this.hotSwapManager = new HotSwapManager((handle) => {
-      this.executeHotSwap(handle);
-    });
+    this.hotSwapManager = new HotSwapManager((handle) => this.executeHotSwap(handle));
+  }
+
+  public clampSample(sample: number): number {
+    return Math.max(-1, Math.min(1, sample));
+  }
+
+  public getAdaptiveSlewRate(): number {
+    return this.currentSlewRate;
+  }
+
+  public getResumptionHandle(): string | null {
+    return this.hotSwapManager.getResumptionHandle();
   }
 
   public connect(isRetry = false): void {
     this.isIntentionalDisconnect = false;
-    if (!isRetry) {
-      this.reconnectAttempts = 0;
-    }
+    if (!isRetry) this.reconnectAttempts = 0;
     this.callbacks.onStatusChange("connecting");
     const wsUrl = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=${encodeURIComponent(
       this.apiKey
@@ -47,37 +64,20 @@ export class TranslationBridge {
       this.ws = new WebSocket(wsUrl);
       this.setupSocketHandlers(this.ws, false);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Kunde inte upprätta WebSocket";
-      this.handleConnectionFailure(msg);
+      this.handleConnectionFailure(err instanceof Error ? err.message : "WebSocket-fel");
     }
   }
 
   private handleConnectionFailure(errorMsg: string): void {
-    if (!this.isIntentionalDisconnect && this.reconnectAttempts < this.MAX_RECONNECT_ATTEMPTS) {
-      this.attemptReconnect();
-    } else {
-      this.callbacks.onError(errorMsg);
-      this.callbacks.onStatusChange("error");
-    }
-  }
-
-  private attemptReconnect(): void {
-    if (this.reconnectTimer) {
-      clearTimeout(this.reconnectTimer);
-      this.reconnectTimer = null;
-    }
-
-    if (this.reconnectAttempts < this.MAX_RECONNECT_ATTEMPTS) {
+    if (!this.isIntentionalDisconnect && this.reconnectAttempts < 3) {
       const delay = Math.min(4000, 1000 * Math.pow(2, this.reconnectAttempts));
       this.reconnectAttempts++;
       this.callbacks.onStatusChange("connecting");
       this.reconnectTimer = setTimeout(() => {
-        if (!this.isIntentionalDisconnect) {
-          this.connect(true);
-        }
+        if (!this.isIntentionalDisconnect) this.connect(true);
       }, delay);
     } else {
-      this.callbacks.onError("Anslutningen till Gemini förlorades efter flera återanslutningsförsök.");
+      this.callbacks.onError(errorMsg);
       this.callbacks.onStatusChange("error");
     }
   }
@@ -85,20 +85,17 @@ export class TranslationBridge {
   private setupSocketHandlers(socket: WebSocket, isPrewarmed: boolean): void {
     socket.onopen = () => {
       const handle = this.hotSwapManager.getResumptionHandle();
-      const setupPayload: Record<string, unknown> = {
+      const setupPayload = {
         setup: {
-          model: "models/gemini-3.5-live-translate-preview",
+          model: "models/gemini-2.0-flash-exp",
           generationConfig: {
             responseModalities: ["AUDIO"],
-            translationConfig: {
-              targetLanguageCode: this.targetLanguage,
-              echoTargetLanguage: false,
-            },
+            translationConfig: { targetLanguageCode: this.targetLanguage, echoTargetLanguage: false },
           },
+          contextWindowCompressionConfig: { slidingWindow: {} },
           ...(handle ? { sessionResumption: { handle } } : {}),
         },
       };
-
       socket.send(JSON.stringify(setupPayload));
       if (!isPrewarmed) {
         this.callbacks.onStatusChange("active");
@@ -106,45 +103,40 @@ export class TranslationBridge {
       }
     };
 
-    socket.onmessage = (event: MessageEvent) => {
+    socket.onmessage = (event: { data: string }) => {
       try {
-        const rawData = typeof event.data === "string" ? event.data : "";
-        if (!rawData) return;
-
-        const data = JSON.parse(rawData);
-
-        // Kontrollera om sessionResumptionUpdate anlänt
+        if (!event.data) return;
+        const data = JSON.parse(event.data);
         if (data?.sessionResumptionUpdate?.newHandle) {
-          this.hotSwapManager.updateResumptionHandle(
-            String(data.sessionResumptionUpdate.newHandle)
-          );
+          this.hotSwapManager.updateResumptionHandle(String(data.sessionResumptionUpdate.newHandle));
         }
-
-        // Extrahera ljuddelar
+        if (data?.goAway) {
+          const timeLeft = Number(data.goAway.timeLeft ?? 5000);
+          if (this.goAwayTimer) clearTimeout(this.goAwayTimer);
+          this.goAwayTimer = setTimeout(() => {
+            this.executeHotSwap(this.hotSwapManager.getResumptionHandle());
+          }, Math.max(0, timeLeft - 2000));
+        }
         const parts = data?.serverContent?.modelTurn?.parts;
         if (Array.isArray(parts)) {
           for (const part of parts) {
             if (part?.inlineData?.data) {
               const samples = AudioResampler.base64ToInt16(part.inlineData.data);
+              this.updateAdaptiveSlew(samples.length);
               this.callbacks.onAudioData(samples);
             }
           }
         }
       } catch (e) {
-        console.warn("Kunde inte tolka Gemini-meddelande:", e);
+        console.warn("[TranslationBridge] Meddelandefel:", e);
       }
-    };
-
-    socket.onerror = (evt) => {
-      console.warn("WebSocket fel:", evt);
-      // Hanteras via onclose eller om anslutningen misslyckas direkt
     };
 
     socket.onclose = (evt?: { code?: number }) => {
       if (!isPrewarmed) {
         this.hotSwapManager.disarmTimer();
         if (!this.isIntentionalDisconnect && evt?.code !== 1000) {
-          this.attemptReconnect();
+          this.handleConnectionFailure("Oväntad frånkoppling");
         } else {
           this.callbacks.onStatusChange("idle");
         }
@@ -152,28 +144,59 @@ export class TranslationBridge {
     };
   }
 
-  public sendAudioChunk(pcm16Samples: Int16Array): void {
-    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
+  private updateAdaptiveSlew(chunkSize: number): void {
+    this.latencyHistory.push({ inputDuration: 100, responseDuration: chunkSize / 24 });
+    if (this.latencyHistory.length > 20) this.latencyHistory.shift();
+    this.adaptiveModel = calculateRegressionModel(this.latencyHistory);
+    const jitterFactor = Math.max(0.95, Math.min(1.05, 1.0 + (this.adaptiveModel.expansionRate - 1.2) * 0.05));
+    this.currentSlewRate = jitterFactor;
+  }
 
-    // Backpressure-kontroll
+  public enqueueAudioSamples(samples: Int16Array): void {
+    for (let i = 0; i < samples.length; i++) {
+      this.sampleBuffer.push(samples[i]!);
+    }
+    while (this.sampleBuffer.length >= this.FRAME_SAMPLES_100MS) {
+      const chunk = new Int16Array(this.sampleBuffer.splice(0, this.FRAME_SAMPLES_100MS));
+      this.sendAudioChunk(chunk);
+    }
+  }
+
+  public sendAudioChunk(pcm16Samples: Int16Array): void {
+    if (!this.ws || this.ws.readyState !== 1) return;
     if (this.ws.bufferedAmount > this.MAX_BUFFERED_BYTES) {
-      console.warn("Backpressure: WebSocket-buffert full, ram släpps");
+      console.warn("[TranslationBridge] Backpressure: 128KB överskriden, kasserar ram");
       return;
     }
+    const clamped = new Int16Array(pcm16Samples.length);
+    for (let i = 0; i < pcm16Samples.length; i++) {
+      const norm = pcm16Samples[i]! / 0x7fff;
+      const c = this.clampSample(norm);
+      clamped[i] = c < 0 ? c * 0x8000 : c * 0x7fff;
+    }
+    const base64Data = AudioResampler.int16ToBase64(clamped);
+    this.ws.send(JSON.stringify({
+      realtimeInput: { mediaChunks: [{ mimeType: "audio/pcm;rate=16000", data: base64Data }] },
+    }));
+  }
 
-    const base64Data = AudioResampler.int16ToBase64(pcm16Samples);
-    const payload = JSON.stringify({
-      realtimeInput: {
-        mediaChunks: [
-          {
-            mimeType: "audio/pcm;rate=16000",
-            data: base64Data,
-          },
-        ],
-      },
-    });
-
-    this.ws.send(payload);
+  public attachSFUStream(stream: MediaStream): void {
+    try {
+      const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      if (!AudioCtx) return;
+      this.sfuAudioContext = new AudioCtx({ sampleRate: 48000 });
+      const src = this.sfuAudioContext.createMediaStreamSource(stream);
+      const proc = this.sfuAudioContext.createScriptProcessor(4096, 1, 1);
+      proc.onaudioprocess = (e) => {
+        const input = e.inputBuffer.getChannelData(0);
+        const pcm16 = AudioResampler.downsample48kTo16k(input);
+        this.enqueueAudioSamples(pcm16);
+      };
+      src.connect(proc);
+      proc.connect(this.sfuAudioContext.destination);
+    } catch (err) {
+      console.warn("[TranslationBridge] Kunde inte koppla SFU-ström:", err);
+    }
   }
 
   private executeHotSwap(_handle: string | null): void {
@@ -181,26 +204,18 @@ export class TranslationBridge {
     const wsUrl = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=${encodeURIComponent(
       this.apiKey
     )}`;
-
     try {
       this.nextWs = new WebSocket(wsUrl);
       this.setupSocketHandlers(this.nextWs, true);
-
-      // När nästa socket är redo, byt atomärt
-      this.nextWs.addEventListener(
-        "open",
-        () => {
-          const oldWs = this.ws;
-          this.ws = this.nextWs;
-          this.nextWs = null;
-          if (oldWs) oldWs.close();
-          this.callbacks.onStatusChange("active");
-          this.hotSwapManager.armTimer();
-        },
-        { once: true }
-      );
-    } catch (err) {
-      console.warn("Hot-swap misslyckades, fortsätter med befintlig socket:", err);
+      this.nextWs.addEventListener("open", () => {
+        const oldWs = this.ws;
+        this.ws = this.nextWs;
+        this.nextWs = null;
+        if (oldWs) oldWs.close();
+        this.callbacks.onStatusChange("active");
+        this.hotSwapManager.armTimer();
+      }, { once: true });
+    } catch {
       this.callbacks.onStatusChange("active");
     }
   }
@@ -211,9 +226,11 @@ export class TranslationBridge {
 
   public disconnect(): void {
     this.isIntentionalDisconnect = true;
-    if (this.reconnectTimer) {
-      clearTimeout(this.reconnectTimer);
-      this.reconnectTimer = null;
+    if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
+    if (this.goAwayTimer) clearTimeout(this.goAwayTimer);
+    if (this.sfuAudioContext && this.sfuAudioContext.state !== "closed") {
+      void this.sfuAudioContext.close();
+      this.sfuAudioContext = null;
     }
     this.hotSwapManager.reset();
     if (this.ws) {
@@ -224,6 +241,7 @@ export class TranslationBridge {
       this.nextWs.close();
       this.nextWs = null;
     }
+    this.sampleBuffer = [];
     this.callbacks.onStatusChange("idle");
   }
 }
