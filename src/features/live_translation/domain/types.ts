@@ -33,3 +33,15 @@ export interface ResumptionState {
   lastActiveTime: number;
   rotationCount: number;
 }
+
+export type AudioTransportStatus = "disconnected" | "connecting" | "connected" | "error";
+
+export interface AudioTransportAdapter {
+  connect(): Promise<void>;
+  disconnect(): void;
+  publishAudio(track: MediaStreamTrack): Promise<string | null>;
+  subscribeToTrack(remoteSessionId: string, trackName: string): Promise<void>;
+  getRemoteStream(): MediaStream | null;
+  getStatus(): AudioTransportStatus;
+  onStatusChange(callback: (status: AudioTransportStatus) => void): void;
+}

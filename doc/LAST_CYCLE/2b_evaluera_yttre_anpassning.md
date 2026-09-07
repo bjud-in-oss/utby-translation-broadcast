@@ -1,6 +1,6 @@
-# Steg 2b: Evaluera yttre anpassning (TCK-005)
+# Steg 2b: Evaluera yttre anpassning (TCK-006)
 
 ## Utvärdering
-1. Kontrakt och typer i `src/features/live_translation/` förenklas och blir renare.
-2. Inga oanvända miljövariabler krävs eller varnas för vid applikationsstart.
-3. Ingen risk för trasiga importer i `src/App.tsx` eller externa komponenter.
+1. **API-stabilitet:** Befintliga komponenter och tester som konsumerar `useCloudflareSFU` påverkas inte negativt, då hooken behåller sitt utåtstående kontrakt men delegerar implementationen till `CloudflareSFUAdapter`.
+2. **Utökbarhet:** Framtida stöd för lokal WebSocket-transport (WSOLA-bridge) kan implementeras som en ytterligare klass (`LocalWebSocketAdapter`) som implementerar samma `AudioTransportAdapter`.
+3. **Resurshantering:** Adapterns livscykel binds strikt till `connect()` / `disconnect()` och rensas garanterat vid unmount.

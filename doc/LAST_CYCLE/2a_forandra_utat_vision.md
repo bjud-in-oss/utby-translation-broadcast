@@ -1,4 +1,5 @@
-# Steg 2a: Förändra utåt - Vision (TCK-005)
+# Steg 2a: Förändra utåt - Vision (TCK-006)
 
 ## Målbild
-Applikationen rensas från alla spår av fas 7-skuld rörande LiveKit. Alla SFU-referenser standardiseras på Cloudflare Calls SFU eller lokal WebSocket-transport (`local-websocket-wsola-bridge`), och Gemini Live BidiGenerateContent hanteras som en ren full-duplex WebSocket-brygga utan förlegade tur-baserade gissningar.
+Skapa en modulär och utbytbar transportarkitektur för simultantolkning.
+Genom att frikoppla ljudtransporten bakom gränssnittet `AudioTransportAdapter` kan applikationen sömlöst växla mellan Cloudflare Calls WebRTC SFU och lokala TCP WebSocket-bryggor utan ändringar i den överliggande domänlogiken eller användargränssnittet.

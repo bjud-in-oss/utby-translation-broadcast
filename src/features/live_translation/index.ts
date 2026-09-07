@@ -5,6 +5,7 @@ export { AudioResampler } from "./domain/audioResampler";
 export { HotSwapManager } from "./domain/hotSwapManager";
 export { TranslationBridge } from "./domain/translationBridge";
 export { MultiBridgeOrchestrator } from "./domain/multiBridgeOrchestrator";
+export { CloudflareSFUAdapter } from "./domain/CloudflareSFUAdapter";
 export { ALL_LANGUAGES, LANGUAGE_REGIONS, getLanguageByCode } from "./domain/languages";
 
 export type {
@@ -15,6 +16,8 @@ export type {
   TranslationSessionConfig,
   TokenResponse,
   ResumptionState,
+  AudioTransportAdapter,
+  AudioTransportStatus,
 } from "./domain/types";
 
 export {

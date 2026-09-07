@@ -1,21 +1,25 @@
-# Steg 4: Producera (TCK-005)
+# Steg 4: Producera (TCK-006)
 
 ## Genomförda förändringar
-1. **useLiveTranslation.ts**:
-   - Rensat bort alla kontroller och varningar för `LIVEKIT_URL` och `LIVEKIT_API_KEY`.
-   - Endast `GEMINI_API_KEY` valideras vid uppstart.
-2. **domain/schema.ts**:
-   - `LiveKitTokenRequestSchema` borttaget.
-   - `livekitUrl` och `livekitToken` borttagna ur `TranslationSessionConfigSchema`.
-3. **domain/types.ts**:
-   - `LiveKitTokenRequest` borttagen.
-   - `livekitUrl` och `livekitToken` borttagna ur `TranslationSessionConfig`.
-4. **index.ts**:
-   - Re-exporter för LiveKit-typer och scheman borttagna.
-5. **domain/adaptiveLogic.ts**:
-   - `calculateRegressionModel` och `predictTurnDuration` har markerats som `@deprecated` med förtydligande om Gemini Live BidiGenerateContent full-duplex.
-   - Adaptiv ringbuffert-slew (`calculateAdaptiveSlewRate`) tillagd för integration med `AudioProcessor.worklet.ts`.
-6. **src/App.tsx**:
-   - UI-text uppdaterad till att referera till Cloudflare SFU / Lokal WS.
-7. **Tester**:
-   - Enhetstester uppdaterade: inga förväntningar på `LIVEKIT`-miljövariabler finns kvar.
+1. **src/features/live_translation/domain/types.ts**:
+   - Definerat `AudioTransportStatus` ('disconnected' | 'connecting' | 'connected' | 'error').
+   - Skapat gränssnittet `AudioTransportAdapter` med kontraktet:
+     - `connect(): Promise<void>`
+     - `disconnect(): void`
+     - `publishAudio(track: MediaStreamTrack): Promise<string | null>`
+     - `subscribeToTrack(remoteSessionId: string, trackName: string): Promise<void>`
+     - `getRemoteStream(): MediaStream | null`
+     - `getStatus(): AudioTransportStatus`
+     - `onStatusChange(callback: (status: AudioTransportStatus) => void): void`
+2. **src/features/live_translation/domain/CloudflareSFUAdapter.ts**:
+   - Implementerat `AudioTransportAdapter` för WebRTC Cloudflare Calls SFU.
+   - Hanterar SDP-sessioner via `/api/sfu/session/new` och spår via `/api/sfu/tracks/new`.
+   - Implementerar ICE gathering await och hanterar `ontrack`-händelser för fjärrström.
+   - Exponerar `getRoomId()` och `getPublishedTrack()`.
+3. **src/features/live_translation/hooks/useCloudflareSFU.ts**:
+   - Refaktoriserat hooken till att internt använda `CloudflareSFUAdapter`.
+   - Bevarat bakåtkompatibilitet för `unlockAudio`, `publishedTrackRef` och status.
+4. **src/features/live_translation/domain/__tests__/transportAdapter.test.ts**:
+   - TDD enhetstester med mockning av RTCPeerConnection, WebSocket och AudioContext.
+5. **src/features/live_translation/index.ts**:
+   - Re-exporterat `AudioTransportAdapter`, `AudioTransportStatus` och `CloudflareSFUAdapter`.

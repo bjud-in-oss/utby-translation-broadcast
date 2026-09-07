@@ -1,8 +1,9 @@
-# Steg 2e: Försoning och förlikning (TCK-005)
+# Steg 2e: Försoning och förlikning (TCK-006)
 
-Samtliga målkonflikter och arkitekturkrav har harmoniserats.
-- Inga LiveKit-importer eller oanvända typer behålls.
-- `adaptiveLogic.ts` anpassas till full-duplex WebSocket-modell.
-- `AudioProcessor.worklet.ts` förblir intakt för 300 ms jitter-buffring.
+Samtliga mål och arkitekturkrav har förlikats:
+- Gränssnittet `AudioTransportAdapter` specificeras i domänens typer.
+- `CloudflareSFUAdapter` implementerar hela kontraktet för SFU WebRTC.
+- `useCloudflareSFU` agerar tunn orkestrerare.
+- TDD-metodik tillämpas i Fas 2 (Steg 4).
 
 MÄTTNAD: JA
