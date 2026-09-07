@@ -39,4 +39,4 @@ Thumbs.db
 coverage/
 .cache/
 .vite/
-.turbo/
+.turbo/.antigravity/
