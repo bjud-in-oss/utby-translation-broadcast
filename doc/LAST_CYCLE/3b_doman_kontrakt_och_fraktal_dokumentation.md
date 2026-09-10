@@ -1,8 +1,14 @@
-# Steg 3b: Domän, kontrakt och fraktal dokumentation (TCK-008)
+# Steg 3b: Domänkontrakt och fraktal dokumentation (TCK-009)
 
-## Kontrakt och typer
-- `src/features/live_translation/hooks/useLiveTranslation.ts`:
-  - Använder standardiserade `MediaTrackConstraints` utan tvingande samplingskrav.
-  - Exponerar oförändrat externt gränssnitt (`status`, `targetLanguage`, `activeLanguages`, `audioLevel`, `audioDevices`, `selectedDeviceId`, `transportMode`, `error`, `configWarning`, `startTranslation`, `stopTranslation`, etc.).
-- Enhetstester:
-  - `src/features/live_translation/hooks/__tests__/useLiveTranslation.test.ts`
+## Domänkontrakt
+- **Sample Rate:** 24 000 Hz.
+- **Kanaler:** 1 (Mono).
+- **Format:** Base64-kodat 16-bit signed PCM (`Int16Array` konverterat till `Float32Array` [-1.0, 1.0]).
+- **Returtyp:**
+  ```typescript
+  export interface UseAudioPlayerReturn {
+    initAudio: () => Promise<void>;
+    playAudioChunk: (base64Data: string) => void;
+    stopAudio: () => void;
+  }
+  ```

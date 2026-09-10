@@ -1,5 +1,6 @@
 export { LiveTranslationWidget } from "./components/LiveTranslationWidget";
 export { useLiveTranslation } from "./hooks/useLiveTranslation";
+export { useAudioPlayer } from "./hooks/useAudioPlayer";
 export { useCloudflareSFU, unlockAudio } from "./hooks/useCloudflareSFU";
 export { useLocalWebSocket } from "./hooks/useLocalWebSocket";
 export { AudioResampler } from "./domain/audioResampler";

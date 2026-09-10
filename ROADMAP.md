@@ -1,10 +1,10 @@
 # 🗺️ ROADMAP: Utvecklingsfaser
 
-- [ ] **Fas 1: Ljudmotor i Klient (`useAudioPlayer.ts`)**
-  - [ ] Skapa React-hook för avkodning av Base64-kodad PCM (Int16 -> Float32).
-  - [ ] Implementera `AudioContext`-buffert och tidsschemaläggning (24kHz Mono) för hackfritt ljud.
-  - [ ] Bygg `initAudio()` för att hantera webbläsarens Autoplay-restriktioner vid knapptryck.
-  - [ ] Verifiera ljudåtergivning med lokalt genererad mock-data.
+- [x] **Fas 1: Ljudmotor i Klient (`useAudioPlayer.ts`)**
+  - [x] Skapa React-hook för avkodning av Base64-kodad PCM (Int16 -> Float32).
+  - [x] Implementera `AudioContext`-buffert och tidsschemaläggning (24kHz Mono) för hackfritt ljud.
+  - [x] Bygg `initAudio()` för att hantera webbläsarens Autoplay-restriktioner vid knapptryck.
+  - [x] Verifiera ljudåtergivning med lokalt genererad mock-data.
 
 - [ ] **Fas 2: Server-växel & E2E-Testmiljö (`server.ts`)**
   - [ ] Sätt upp Node.js WebSocket-server (port 8080) med klient-fanout (relay).

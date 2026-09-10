@@ -1,6 +1,6 @@
-# Steg 2b: Evaluera yttre anpassning (TCK-008)
+# Steg 2b: Evaluera yttre anpassning (TCK-009)
 
 ## Utvärdering
-1. **Hårdvarukompatibilitet:** Genom att eliminera strikta krav (som fasta frekvensvärden utan ideal/fallback) accepteras alla standardmikrofoner inklusive headset, USB-ljudkort, inbyggda mikrofoner och professionella NDI-källor.
-2. **Standardiserat Web Audio:** Eftersom `AudioContext` och Web Audio-noder automatiskt anpassar strömmens format till kontextens samplingsfrekvens föreligger ingen risk för kvalitetsförlust eller samplingsinkonsistens mot Gemini Live API.
-3. **Resiliens mot fel:** `OverconstrainedError` elimineras vid ljudfångst utan att kompromissa med DSP-inställningar (`echoCancellation: false`, `noiseSuppression: false`, `autoGainControl: false`).
+1. **Zero External Dependencies:** Hooken förlitar sig uteslutande på Web Audio API och React core hooks (`useRef`, `useCallback`, `useEffect`).
+2. **Harmoni med SYSTEM_SPEC.md:** Datakontraktet (24kHz Mono Int16 PCM) och jitterbuffert (40 ms) stämmer exakt överens med sektion 3 och 5 i Gemini Live Translate-specifikationen.
+3. **Fasadexport:** Hooken exponeras tydligt via `src/features/live_translation/index.ts` utan `export *`.

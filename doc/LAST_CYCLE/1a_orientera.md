@@ -1,9 +1,9 @@
-# Steg 1a: Orientera (TCK-008)
+# Steg 1a: Orientera (TCK-009)
 
 ## Mål
-Åtgärda `OverconstrainedError` vid ljudfångst i domänen `live_translation` genom att mjuka upp hårt ställda krav i anropet till `navigator.mediaDevices.getUserMedia` i `src/features/live_translation/hooks/useLiveTranslation.ts`. Strikta hårdvarukrav på samplingsfrekvens ersätts med flexibla krav (`sampleRate: { ideal: 16000 }` eller avlägsnas ur constraints), medan WebAudio och AudioWorklet hanterar intern resampling.
+Implementera Fas 1 i ROADMAP.md: Klientens ljudmotor (`useAudioPlayer.ts`) för mottagning och sömlös uppspelning av 24kHz Mono 16-bit PCM-ljud (från Gemini Live API / serverrelay) med Web Audio API, tidsbaserad jitterbuffert (40 ms) och autoplay-upplåsning.
 
 ## GROW-frågor mot ändringens faktiska risknoder
-1. **Contract & Constraints (MediaTrackConstraints och ljudfångstkontrakt):** Hur ska parametrarna i `navigator.mediaDevices.getUserMedia` utformas så att strikta hårdvarukrav (t.ex. fasta sample rates eller `exact`) ersätts med flexibla preferenser (`sampleRate: { ideal: 16000 }` eller utelämnad `sampleRate`), och hur säkerställs att enhetsval via `deviceId` sker utan att utlösa `OverconstrainedError` på enheter med begränsat hårdvarustöd?
-2. **Effects & Resampling (AudioContext & Worklet-bearbetning):** Hur interagerar den erhållna ljudströmmen från `getUserMedia` med `AudioContext` och `MicCapture.worklet.ts` när hårdvaran levererar godtycklig nativ samplingsfrekvens (t.ex. 44.1 kHz, 48 kHz eller 96 kHz), och hur garanteras att resampling och 100 ms ramindelning sker stabilt utan latency-ackumulering?
-3. **Resilience & State (Felhantering och testbarhet):** Hur säkerställs att `useLiveTranslation` och tillhörande enhetstester i `useLiveTranslation.test.ts` validerar de mjukare kraven samt graciöst hanterar eventuella nekade behörigheter eller hårdvarufel med korrekt uppdatering av hookens fel- och statusläge (`status: "error"`, `error: string`)?
+1. **State & Scheduling (AudioContext & nextStartTime):** Hur upprätthålls `nextStartTime` och aktiva ljudkällor (`activeAudioSources`) så att inkommande diskreta Base64-ljudpaket schemaläggs utan glapp, knäppar eller drift, och hur återställs tidslinjen vid buffertunderflow eller omedelbart stopp?
+2. **Contract & Conversion (Base64 Int16 PCM till Float32 AudioBuffer):** Hur valideras och konverteras Base64-strängen till `Int16Array` (med hänsyn tagen till byteOffset/längd) och därefter till en normaliserad `Float32Array` vid 24 000 Hz utan minnesläckage eller datakorruption?
+3. **Resilience & Autoplay (Webbläsarens mediabegränsningar och resursstädning):** Hur hanteras autoplay-restriktioner via `initAudio()` vid användarinteraktion så att en avstängd (`suspended`) AudioContext återupptas omedelbart, och hur säkerställs omedelbar panik-tystning (`stopAudio()`) och uppstädning vid unmount?
